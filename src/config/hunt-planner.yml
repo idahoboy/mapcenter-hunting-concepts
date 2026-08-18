@@ -1,0 +1,162 @@
+app:
+  name: Idaho Hunt Planner
+  eyebrow: Idaho Fish and Game
+  defaultBasemap: topo
+  center: [-114.52, 45.5]
+  zoom: 6
+  disclaimer: Boundaries are for planning only. Verify current seasons, rules, closures, and legal descriptions before hunting.
+
+activities:
+  - id: big-game
+    label: Big game
+    description: Deer, elk, pronghorn, moose, sheep and goat
+    icon: deer
+    accent: '#9b5d32'
+    suggestedLayers: [game-units, elk-zones, controlled-hunts, motorized-rules]
+  - id: turkey-upland
+    label: Turkey & upland
+    description: Turkey, grouse, pheasant, quail and chukar
+    icon: bird
+    accent: '#83672d'
+    suggestedLayers: [game-units, upland-restrictions, access-yes]
+  - id: waterfowl
+    label: Waterfowl
+    description: Duck, goose, swan and coot planning
+    icon: waves
+    accent: '#287d86'
+    suggestedLayers: [waterfowl-restrictions, access-yes, wmas]
+  - id: predator
+    label: Predator & furbearer
+    description: Wolf, bear, lion and trapping areas
+    icon: paw
+    accent: '#705b89'
+    suggestedLayers: [wolf-zones, furbearer-restrictions, access-yes]
+  - id: access
+    label: Access & scouting
+    description: Public access, roads, trails and campgrounds
+    icon: route
+    accent: '#367257'
+    suggestedLayers: [access-yes, wmas, surface-management, campgrounds]
+
+layerGroups:
+  - id: hunt
+    label: Hunts & boundaries
+    description: Start with the legal geography of the hunt.
+    layers:
+      - id: game-units
+        label: Game management units
+        description: Numbered statewide game units
+        type: feature
+        url: https://services.arcgis.com/FjJI5xHF2dUPVrgK/ArcGIS/rest/services/GameManagementUnits/FeatureServer/0
+        defaultVisible: true
+        opacity: 0.72
+        signals: [hunt, unit, area, boundary, species, compare, statewide]
+      - id: elk-zones
+        label: Elk management zones
+        description: Elk zone boundaries
+        type: feature
+        url: https://services.arcgis.com/FjJI5xHF2dUPVrgK/ArcGIS/rest/services/ElkManagementZones/FeatureServer/0
+        defaultVisible: false
+        opacity: 0.68
+        signals: [elk, hunt, zone, boundary, management]
+      - id: wolf-zones
+        label: Wolf management zones
+        description: Wolf zone boundaries
+        type: feature
+        url: https://services.arcgis.com/FjJI5xHF2dUPVrgK/ArcGIS/rest/services/Wolf_Management_Zones/FeatureServer/0
+        defaultVisible: false
+        opacity: 0.68
+        signals: [wolf, predator, hunt, zone, boundary]
+      - id: controlled-hunts
+        label: Controlled hunt areas
+        description: Current service; season-year filtering is the next integration step
+        type: map-image
+        url: https://gisportal-idfg.idaho.gov/hosting/rest/services/Apps/HuntPlanner/MapServer
+        sublayers: [4]
+        defaultVisible: false
+        opacity: 0.78
+        signals: [controlled, draw, permit, hunt, opportunity, boundary]
+
+  - id: rules
+    label: Rules & restrictions
+    description: Areas with special restrictions or closures.
+    layers:
+      - id: motorized-rules
+        label: Motorized vehicle hunting rule
+        description: Units with motorized hunting restrictions
+        type: feature
+        url: https://services.arcgis.com/FjJI5xHF2dUPVrgK/ArcGIS/rest/services/GMUsWithMotorizedHuntingRules/FeatureServer/0
+        defaultVisible: false
+        opacity: 0.62
+        signals: [motor, motorized, road, vehicle, restriction, access]
+      - id: upland-restrictions
+        label: Upland game & turkey restrictions
+        description: Restricted or closed areas
+        type: feature
+        url: https://services.arcgis.com/FjJI5xHF2dUPVrgK/ArcGIS/rest/services/AreasWithHuntingRestrictions/FeatureServer/1
+        defaultVisible: false
+        opacity: 0.68
+        signals: [turkey, upland, bird, restriction, closure]
+      - id: waterfowl-restrictions
+        label: Waterfowl restrictions
+        description: Restricted or closed areas
+        type: feature
+        url: https://services.arcgis.com/FjJI5xHF2dUPVrgK/ArcGIS/rest/services/AreasWithHuntingRestrictions/FeatureServer/3
+        defaultVisible: false
+        opacity: 0.68
+        signals: [waterfowl, duck, goose, swan, restriction, closure]
+      - id: furbearer-restrictions
+        label: Furbearer restrictions
+        description: Restricted or closed areas
+        type: feature
+        url: https://services.arcgis.com/FjJI5xHF2dUPVrgK/ArcGIS/rest/services/AreasWithHuntingRestrictions/FeatureServer/4
+        defaultVisible: false
+        opacity: 0.68
+        signals: [furbearer, trapping, predator, restriction, closure]
+
+  - id: access
+    label: Land & access
+    description: Understand where access may be available, then verify locally.
+    layers:
+      - id: access-yes
+        label: Access Yes! properties
+        description: Participating private properties with public access agreements
+        type: feature
+        url: https://gisportal-idfg.idaho.gov/hosting/rest/services/Access/Access/MapServer/1
+        defaultVisible: true
+        opacity: 0.82
+        signals: [public, access, private, property, yes, walk-in]
+      - id: wmas
+        label: Wildlife management areas
+        description: IDFG-managed wildlife areas
+        type: feature
+        url: https://services.arcgis.com/FjJI5xHF2dUPVrgK/ArcGIS/rest/services/WildlifeManagementAreas/FeatureServer/0
+        defaultVisible: false
+        opacity: 0.74
+        signals: [public, access, wildlife, management, habitat, camping]
+      - id: surface-management
+        label: State & federal land management
+        description: General land management context
+        type: feature
+        url: https://gis.blm.gov/idarcgis/rest/services/lands/BLM_ID_Surface_Management_Agency/FeatureServer/0
+        defaultVisible: false
+        opacity: 0.62
+        signals: [public, land, blm, forest, state, ownership, access]
+      - id: campgrounds
+        label: Forest Service recreation sites
+        description: Constructed recreation and camping facilities
+        type: feature
+        url: https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_InfraRecreationSites_01/MapServer/0
+        defaultVisible: false
+        opacity: 0.9
+        signals: [camp, camping, campground, overnight, access, scouting]
+
+basemaps:
+  - id: topo
+    label: Topographic
+  - id: satellite
+    label: Satellite
+  - id: streets-vector
+    label: Roads
+  - id: gray-vector
+    label: Low contrast

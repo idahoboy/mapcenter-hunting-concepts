@@ -1,0 +1,25 @@
+{
+  "name": "idfg-hunt-planner-modern",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@arcgis/core": "^5.1.17",
+    "@arcgis/map-components": "^5.1.17",
+    "@esri/calcite-components": "^5.1.2",
+    "eslint": "^10.8.1",
+    "js-yaml": "^5.3.0",
+    "lucide-react": "^1.32.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.11"
+  }
+}
