@@ -1,4 +1,4 @@
-import { Accessibility, Map as MapIcon, MapPin, Search } from 'lucide-react';
+import { Accessibility, FileText, Map as MapIcon, MapPin, Search } from 'lucide-react';
 import config from './config.js';
 
 function SiteHeader({ activeView, displayExpanded = false, onDisplay, children }) {
@@ -9,16 +9,20 @@ function SiteHeader({ activeView, displayExpanded = false, onDisplay, children }
         <span><small>{config.app.eyebrow}</small>{config.app.name}</span>
       </a>
       <nav aria-label="Planner views">
-        <a className={activeView === 'map' ? 'active' : ''} href="/">
+        <a className={activeView === 'map' ? 'active' : ''} href="/" aria-label="Map center">
           <MapIcon size={17} /><span>Map center</span>
         </a>
-        <a className={activeView === 'search' ? 'active' : ''} href="/search">
+        <a className={activeView === 'search' ? 'active' : ''} href="/search" aria-label="Opportunity search">
           <Search size={17} /><span>Opportunity search</span>
+        </a>
+        <a className={activeView === 'detail' ? 'active' : ''} href="/hunt/82313" aria-label="Hunt details">
+          <FileText size={17} /><span>Hunt details</span>
         </a>
       </nav>
       <button
         className="search-display-button"
         onClick={onDisplay}
+        aria-label="Display and accessibility settings"
         aria-expanded={displayExpanded}
         aria-controls={onDisplay ? 'accessibility-panel' : undefined}
       >

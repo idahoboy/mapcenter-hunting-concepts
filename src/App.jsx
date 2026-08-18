@@ -21,6 +21,7 @@ import config, { allLayers } from './config.js';
 import { createLayer } from './mapLayers.js';
 import SearchPage from './SearchPage.jsx';
 import SiteHeader from './SiteHeader.jsx';
+import HuntDetailPage from './HuntDetailPage.jsx';
 
 import '@arcgis/map-components/components/arcgis-map';
 import '@arcgis/map-components/components/arcgis-zoom';
@@ -248,6 +249,8 @@ function PlannerPage() {
 }
 
 function App() {
+  const huntMatch = window.location.pathname.match(/^\/hunt\/(\d+)/);
+  if (huntMatch) return <HuntDetailPage huntId={huntMatch[1]} />;
   return window.location.pathname.startsWith('/search') ? <SearchPage /> : <PlannerPage />;
 }
 
