@@ -30,15 +30,15 @@ import '@arcgis/map-components/components/arcgis-locate';
 import '@arcgis/map-components/components/arcgis-scale-bar';
 
 const opportunities = [
-  { unit: '39', title: 'Boise River Zone', region: 'Southwest', match: 96, drive: '42 min', access: 'Strong', terrain: 'Foothills', tags: ['Elk', 'Public access', 'Close to Boise'], accent: '#336f53' },
-  { unit: '43', title: 'Sawtooth foothills', region: 'Magic Valley', match: 91, drive: '2 hr 18 min', access: 'Mixed', terrain: 'Alpine', tags: ['Elk', 'Wilderness nearby', 'Campgrounds'], accent: '#536f3b' },
+  { unit: '30A-1', mapUnit: '30A', typeLabel: 'Hunt area', detailId: '82313', title: 'Controlled elk hunt 2111', region: 'Salmon Region', match: 96, drive: '3 hr 35 min', access: 'Limited', terrain: 'High desert', tags: ['Elk', 'Controlled hunt', '10 tags'], accent: '#336f53' },
+  { unit: '13', mapUnit: '13', typeLabel: 'GMU', detailId: '78813', title: 'General black bear season', region: 'Clearwater Region', match: 91, drive: '3 hr 50 min', access: 'Mixed', terrain: 'Canyon', tags: ['Black bear', 'General season', 'Unlimited tags'], accent: '#536f3b' },
   { unit: '48', title: 'Pioneer Mountains', region: 'Magic Valley', match: 87, drive: '2 hr 44 min', access: 'Strong', terrain: 'Mountain', tags: ['Elk', 'Public land', 'Steeper terrain'], accent: '#6f5b3b' },
   { unit: '22', title: 'Weiser River', region: 'Southwest', match: 82, drive: '1 hr 52 min', access: 'Mixed', terrain: 'Canyon', tags: ['Elk', 'Road access', 'Motor rules'], accent: '#785443' },
   { unit: '32A', title: 'Payette River', region: 'Southwest', match: 79, drive: '1 hr 31 min', access: 'Strong', terrain: 'Timber', tags: ['Elk', 'Access Yes!', 'Camp nearby'], accent: '#3e6260' },
 ];
 
 const initialFilters = {
-  species: 'Elk',
+  species: 'Any species',
   season: 'Fall 2026',
   huntType: 'Any hunt type',
   access: 'Public access',
@@ -50,7 +50,7 @@ function SearchPage() {
   const mapRef = useRef(null);
   const layerInstances = useRef(new Map());
   const highlightHandle = useRef(null);
-  const [query, setQuery] = useState('Find a fall elk hunt within 3 hours of Boise with public access and fewer motor restrictions');
+  const [query, setQuery] = useState('Find a 2026 hunting opportunity with useful access and boundary information');
   const [filters, setFilters] = useState(initialFilters);
   const [selectedUnit, setSelectedUnit] = useState('39');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -118,27 +118,28 @@ function SearchPage() {
     setStatus(`${allLayers.find((layer) => layer.id === id)?.label} manually turned ${next ? 'on' : 'off'}.`);
   };
 
-  const focusUnit = async (unit) => {
-    setSelectedUnit(unit);
+  const focusUnit = async (item) => {
+    setSelectedUnit(item.unit);
     const layer = layerInstances.current.get('game-units');
     const view = mapRef.current?.view;
     if (!layer || !view) return;
     try {
-      const response = await layer.queryFeatures({ where: `NAME = '${unit}'`, outFields: ['NAME', 'Elk_Zone'], returnGeometry: true });
+      const mapUnit = item.mapUnit ?? item.unit;
+      const response = await layer.queryFeatures({ where: `NAME = '${mapUnit}'`, outFields: ['NAME', 'Elk_Zone'], returnGeometry: true });
       const feature = response.features[0];
       if (!feature) return;
       highlightHandle.current?.remove();
       const layerView = await view.whenLayerView(layer);
       highlightHandle.current = layerView.highlight(feature);
       await view.goTo(feature.geometry.extent.expand(1.7), { duration: 500 });
-      setStatus(`Map centered on Game Management Unit ${unit}.`);
+      setStatus(`Map centered on Game Management Unit ${mapUnit}.`);
     } catch {
-      setStatus(`Unit ${unit} selected. Map focus is temporarily unavailable.`);
+      setStatus(`${item.unit} selected. Map focus is temporarily unavailable.`);
     }
   };
 
   const filterOptions = {
-    species: ['Elk', 'Deer', 'Pronghorn', 'Moose', 'Turkey'],
+    species: ['Any species', 'Elk', 'Deer', 'Pronghorn', 'Moose', 'Turkey'],
     season: ['Fall 2026', 'Spring 2027', 'Any season'],
     huntType: ['Any hunt type', 'General season', 'Controlled hunt'],
     access: ['Public access', 'Access Yes!', 'Any access'],
@@ -200,16 +201,16 @@ function SearchPage() {
           <div className="opportunity-list">
             {opportunities.map((item, index) => (
               <article className={selectedUnit === item.unit ? 'opportunity-card selected' : 'opportunity-card'} key={item.unit}>
-                <button className="card-hit-area" onClick={() => focusUnit(item.unit)} aria-label={`Show Unit ${item.unit}, ${item.title}, on map`} />
+                <button className="card-hit-area" onClick={() => focusUnit(item)} aria-label={`Show ${item.typeLabel ?? 'Unit'} ${item.unit}, ${item.title}, on map`} />
                 <div className="unit-visual" style={{ '--unit-accent': item.accent }}>
-                  <span>GMU</span><strong>{item.unit}</strong><small>{item.region}</small>
+                  <span>{item.typeLabel ?? 'GMU'}</span><strong className={item.unit.length > 3 ? 'long-unit' : ''}>{item.unit}</strong><small>{item.region}</small>
                   {index === 0 && <b><BadgeCheck size={14} />Top match</b>}
                 </div>
                 <div className="unit-details">
-                  <div className="unit-title-row"><div><span>Game Management Unit {item.unit}</span><h2>{item.title}</h2></div><strong className="match-score">{item.match}%<small>match</small></strong></div>
+                  <div className="unit-title-row"><div><span>{item.typeLabel === 'Hunt area' ? `Hunt Area ${item.unit}` : `Game Management Unit ${item.unit}`}</span><h2>{item.title}</h2></div><strong className="match-score">{item.match}%<small>match</small></strong></div>
                   <div className="unit-facts"><span><Car size={15} />{item.drive}</span><span><Users size={15} />{item.access} access</span><span><Mountain size={15} />{item.terrain}</span></div>
                   <div className="unit-tags">{item.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
-                  <div className="unit-footer"><span><Clock3 size={14} />Services checked moments ago</span><span>View details <ChevronRight size={15} /></span></div>
+                  <div className="unit-footer"><span><Clock3 size={14} />Services checked moments ago</span>{item.detailId ? <a href={`/hunt/${item.detailId}`} aria-label={`View details for ${item.title}`}>View details <ChevronRight size={15} /></a> : <button onClick={() => focusUnit(item)}>Show on map <ChevronRight size={15} /></button>}</div>
                 </div>
               </article>
             ))}
