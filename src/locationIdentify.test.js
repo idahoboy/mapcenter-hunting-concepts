@@ -19,12 +19,14 @@ describe('map location summaries', () => {
   });
 
   it('adds a configured prefix to recognizable hunt geography', () => {
+    const geometry = { type: 'polygon', extent: { xmin: -116, ymin: 43, xmax: -115, ymax: 44 } };
     const result = formatIdentifyFeature({
       id: 'game-units',
       label: 'Game management units',
       identify: { category: 'Hunts & boundaries', titlePrefix: 'GMU', titleFields: ['NAME'] },
-    }, { NAME: '51' });
+    }, { NAME: '51' }, geometry);
 
     expect(result.title).toBe('GMU 51');
+    expect(result.geometry).toBe(geometry);
   });
 });

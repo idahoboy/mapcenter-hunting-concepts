@@ -18,7 +18,7 @@ const formatValue = (value, format) => {
   return value;
 };
 
-export function formatIdentifyFeature(definition, attributes) {
+export function formatIdentifyFeature(definition, attributes, geometry = null) {
   const identify = definition.identify ?? {};
   const rawTitle = valueFor(attributes, identify.titleFields) ?? definition.label;
   const title = identify.titlePrefix ? `${identify.titlePrefix} ${rawTitle}` : rawTitle;
@@ -36,6 +36,7 @@ export function formatIdentifyFeature(definition, attributes) {
     title,
     note: identify.note,
     facts,
+    geometry,
   };
 }
 
@@ -45,7 +46,7 @@ const queryTarget = async (target, definition, point) => {
     geometry: point,
     spatialRelationship: 'intersects',
     outFields: ['*'],
-    returnGeometry: false,
+    returnGeometry: true,
     num: definition.identify?.maxResults ?? 2,
   };
   if (definition.identify?.orderByFields) query.orderByFields = definition.identify.orderByFields;
@@ -57,7 +58,7 @@ const queryTarget = async (target, definition, point) => {
     delete query.orderByFields;
     result = await target.queryFeatures(query);
   }
-  return result.features.map((feature) => formatIdentifyFeature(definition, feature.attributes));
+  return result.features.map((feature) => formatIdentifyFeature(definition, feature.attributes, feature.geometry));
 };
 
 export async function identifyVisibleLayers(definitions, layerInstances, point) {

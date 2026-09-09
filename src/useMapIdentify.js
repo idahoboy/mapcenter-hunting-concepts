@@ -5,10 +5,12 @@ export function useMapIdentify(layerInstances, definitions) {
   const [summary, setSummary] = useState(null);
   const clickHandle = useRef(null);
   const requestId = useRef(0);
+  const viewRef = useRef(null);
 
   useEffect(() => () => clickHandle.current?.remove(), []);
 
   const attach = (view) => {
+    viewRef.current = view;
     clickHandle.current?.remove();
     view.popupEnabled = false;
     clickHandle.current = view.on('click', async (event) => {
@@ -31,5 +33,17 @@ export function useMapIdentify(layerInstances, definitions) {
     setSummary(null);
   };
 
-  return { summary, attach, close };
+  const zoomTo = async (match) => {
+    const view = viewRef.current;
+    const geometry = match?.geometry;
+    if (!view || !geometry) return;
+    const reducedMotion = document.documentElement.dataset.motion === 'reduced';
+    const target = geometry.extent
+      ? geometry.extent.expand(1.18)
+      : { target: geometry, zoom: Math.max(view.zoom, 14) };
+    close();
+    await view.goTo(target, { duration: reducedMotion ? 0 : 550 });
+  };
+
+  return { summary, attach, close, zoomTo };
 }

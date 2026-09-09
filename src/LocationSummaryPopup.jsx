@@ -1,6 +1,6 @@
-import { AlertCircle, Crosshair, LoaderCircle, MapPin, X } from 'lucide-react';
+import { AlertCircle, Crosshair, LoaderCircle, MapPin, ScanSearch, X } from 'lucide-react';
 
-function LocationSummaryPopup({ summary, onClose }) {
+function LocationSummaryPopup({ summary, onClose, onZoom }) {
   if (!summary) return null;
   const categories = [...new Set(summary.matches.map((match) => match.category))];
 
@@ -28,6 +28,7 @@ function LocationSummaryPopup({ summary, onClose }) {
                   <span><strong>{match.title}</strong><small>{match.layer}</small></span>
                   {match.note && <p>{match.note}</p>}
                   {match.facts.length > 0 && <dl>{match.facts.map((fact) => <div key={`${match.id}-${fact.label}`}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl>}
+                  {match.geometry && <button className="identify-zoom" onClick={() => onZoom(match)}><ScanSearch size={14} />Zoom to {match.geometry.extent ? 'boundary' : 'location'}</button>}
                 </article>
               ))}
             </section>

@@ -63,7 +63,7 @@ function SearchPage() {
   const [manualOverrides, setManualOverrides] = useState({});
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [status, setStatus] = useState('Search assistant ready.');
-  const { summary: locationSummary, attach: attachIdentify, close: closeIdentify } = useMapIdentify(layerInstances, allLayers);
+  const { summary: locationSummary, attach: attachIdentify, close: closeIdentify, zoomTo: zoomToIdentify } = useMapIdentify(layerInstances, allLayers);
 
   const rankedLayers = useMemo(
     () => deriveLayerStack(allLayers, query, filters),
@@ -228,7 +228,7 @@ function SearchPage() {
             <arcgis-locate slot="top-left" />
             <arcgis-scale-bar slot="bottom-left" unit="dual" />
           </arcgis-map>
-          <LocationSummaryPopup summary={locationSummary} onClose={closeIdentify} />
+          <LocationSummaryPopup summary={locationSummary} onClose={closeIdentify} onZoom={zoomToIdentify} />
           <div className="map-result-count"><MapPin size={16} /><strong>24 matches</strong><span>in this map area</span></div>
           <aside className={stackOpen ? 'smart-stack is-open' : 'smart-stack'} aria-label="AI-selected map services">
             <button className="smart-stack-heading" onClick={() => setStackOpen(!stackOpen)} aria-expanded={stackOpen}>

@@ -62,7 +62,7 @@ function PlannerPage() {
     window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   );
   const [status, setStatus] = useState('Loading Idaho map services…');
-  const { summary: locationSummary, attach: attachIdentify, close: closeIdentify } = useMapIdentify(layerInstances, allLayers);
+  const { summary: locationSummary, attach: attachIdentify, close: closeIdentify, zoomTo: zoomToIdentify } = useMapIdentify(layerInstances, allLayers);
 
   const activeLayerCount = Object.values(layerState).filter(Boolean).length;
   const activeActivityData = config.activities.find((item) => item.id === activeActivity);
@@ -211,7 +211,7 @@ function PlannerPage() {
             <arcgis-locate slot="top-left" />
             <arcgis-scale-bar slot="bottom-left" unit="dual" />
           </arcgis-map>
-          <LocationSummaryPopup summary={locationSummary} onClose={closeIdentify} />
+          <LocationSummaryPopup summary={locationSummary} onClose={closeIdentify} onZoom={zoomToIdentify} />
 
           <div className="map-search"><arcgis-search include-default-sources="true" /></div>
           <div className="map-actions" aria-label="Map controls">
