@@ -32,6 +32,8 @@ npm run build
 
 Layer `signals` are catalog metadata used by the `/search` prototype to score services against the user's words and filters. The search page does not use the activity `suggestedLayers` bundles.
 
+Layer `identify` metadata controls the shared **What's here?** map summary. A map click queries every visible, identifiable service at that location and groups matching boundaries into hunt, restriction, access, ownership, and nearby-place context without exposing raw GIS attributes.
+
 ## Prototype boundaries
 
 This is a discovery prototype, not a production hunting-regulation system. Search, season filtering, legal-rule joins, printing, offline packages, analytics, authentication, and saved plans require product and data contracts before implementation. All map data should be treated as planning context and checked against current regulations and authoritative legal descriptions.

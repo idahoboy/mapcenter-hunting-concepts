@@ -22,6 +22,9 @@ import { createLayer } from './mapLayers.js';
 import SearchPage from './SearchPage.jsx';
 import SiteHeader from './SiteHeader.jsx';
 import HuntDetailPage from './HuntDetailPage.jsx';
+import LocationSummaryPopup from './LocationSummaryPopup.jsx';
+import { useMapIdentify } from './useMapIdentify.js';
+import './location-summary.css';
 
 import '@arcgis/map-components/components/arcgis-map';
 import '@arcgis/map-components/components/arcgis-zoom';
@@ -59,6 +62,7 @@ function PlannerPage() {
     window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   );
   const [status, setStatus] = useState('Loading Idaho map services…');
+  const { summary: locationSummary, attach: attachIdentify, close: closeIdentify } = useMapIdentify(layerInstances, allLayers);
 
   const activeLayerCount = Object.values(layerState).filter(Boolean).length;
   const activeActivityData = config.activities.find((item) => item.id === activeActivity);
@@ -100,6 +104,7 @@ function PlannerPage() {
           'Explore game units, hunt boundaries, restrictions, public access, and land-management context.',
       };
       mapElement.view.constraints = { geometry: { type: 'extent', xmin: -118.2, ymin: 41.6, xmax: -110.2, ymax: 49.2 } };
+      attachIdentify(mapElement.view);
     }
 
     setStatus(`${activeLayerCount} map layers are on.`);
@@ -206,6 +211,7 @@ function PlannerPage() {
             <arcgis-locate slot="top-left" />
             <arcgis-scale-bar slot="bottom-left" unit="dual" />
           </arcgis-map>
+          <LocationSummaryPopup summary={locationSummary} onClose={closeIdentify} />
 
           <div className="map-search"><arcgis-search include-default-sources="true" /></div>
           <div className="map-actions" aria-label="Map controls">

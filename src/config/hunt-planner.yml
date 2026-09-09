@@ -51,6 +51,12 @@ layerGroups:
         defaultVisible: true
         opacity: 0.72
         signals: [hunt, unit, area, boundary, species, compare, statewide]
+        identify:
+          category: Hunts & boundaries
+          titlePrefix: GMU
+          titleFields: [NAME]
+          fields:
+            - { field: Elk_Zone, label: Elk zone }
       - id: elk-zones
         label: Elk management zones
         description: Elk zone boundaries
@@ -59,6 +65,10 @@ layerGroups:
         defaultVisible: false
         opacity: 0.68
         signals: [elk, hunt, zone, boundary, management]
+        identify:
+          category: Hunts & boundaries
+          titlePrefix: Elk zone
+          titleFields: [NAME, Zone, ZONE]
       - id: wolf-zones
         label: Wolf management zones
         description: Wolf zone boundaries
@@ -67,6 +77,10 @@ layerGroups:
         defaultVisible: false
         opacity: 0.68
         signals: [wolf, predator, hunt, zone, boundary]
+        identify:
+          category: Hunts & boundaries
+          titlePrefix: Wolf zone
+          titleFields: [NAME, Zone, ZONE]
       - id: controlled-hunts
         label: Controlled hunt areas
         description: Current service; season-year filtering is the next integration step
@@ -76,6 +90,15 @@ layerGroups:
         defaultVisible: false
         opacity: 0.78
         signals: [controlled, draw, permit, hunt, opportunity, boundary]
+        identify:
+          category: Hunts & boundaries
+          titlePrefix: Hunt area
+          titleFields: [HuntArea, AREA, Area, NAME]
+          maxResults: 1
+          orderByFields: [Year DESC]
+          fields:
+            - { field: BigGame, label: Species }
+            - { field: Year, label: Season }
 
   - id: rules
     label: Rules & restrictions
@@ -89,6 +112,11 @@ layerGroups:
         defaultVisible: false
         opacity: 0.62
         signals: [motor, motorized, road, vehicle, restriction, access]
+        identify:
+          category: Rules & restrictions
+          titlePrefix: GMU
+          titleFields: [NAME]
+          note: Motorized vehicle hunting rules apply in this unit. Check current exceptions and dates.
       - id: upland-restrictions
         label: Upland game & turkey restrictions
         description: Restricted or closed areas
@@ -97,6 +125,11 @@ layerGroups:
         defaultVisible: false
         opacity: 0.68
         signals: [turkey, upland, bird, restriction, closure]
+        identify:
+          category: Rules & restrictions
+          titleFields: [Closed_Are, NAME]
+          fields:
+            - { field: Comments, label: Rule }
       - id: waterfowl-restrictions
         label: Waterfowl restrictions
         description: Restricted or closed areas
@@ -105,6 +138,11 @@ layerGroups:
         defaultVisible: false
         opacity: 0.68
         signals: [waterfowl, duck, goose, swan, restriction, closure]
+        identify:
+          category: Rules & restrictions
+          titleFields: [Closed_Are, NAME]
+          fields:
+            - { field: Comments, label: Rule }
       - id: furbearer-restrictions
         label: Furbearer restrictions
         description: Restricted or closed areas
@@ -113,6 +151,11 @@ layerGroups:
         defaultVisible: false
         opacity: 0.68
         signals: [furbearer, trapping, predator, restriction, closure]
+        identify:
+          category: Rules & restrictions
+          titleFields: [Closed_Are, NAME]
+          fields:
+            - { field: Comments, label: Rule }
 
   - id: access
     label: Land & access
@@ -126,6 +169,14 @@ layerGroups:
         defaultVisible: true
         opacity: 0.82
         signals: [public, access, private, property, yes, walk-in]
+        identify:
+          category: Land & access
+          titleFields: [NAME]
+          fields:
+            - { field: GeneralArea, label: Area }
+            - { field: Acreage, label: Acres, format: number }
+            - { field: AccessBegin, label: Opens, format: date }
+            - { field: AccessEnd, label: Closes, format: date }
       - id: wmas
         label: Wildlife management areas
         description: IDFG-managed wildlife areas
@@ -134,6 +185,11 @@ layerGroups:
         defaultVisible: false
         opacity: 0.74
         signals: [public, access, wildlife, management, habitat, camping]
+        identify:
+          category: Land & access
+          titleFields: [Name, NAME]
+          fields:
+            - { field: Acres, label: Acres, format: number }
       - id: surface-management
         label: State & federal land management
         description: General land management context
@@ -142,6 +198,11 @@ layerGroups:
         defaultVisible: false
         opacity: 0.62
         signals: [public, land, blm, forest, state, ownership, access]
+        identify:
+          category: Land & access
+          titleFields: [AGNCY_NAME, MGMT_AGNCY]
+          fields:
+            - { field: GIS_ACRES, label: Polygon acres, format: number }
       - id: campgrounds
         label: Forest Service recreation sites
         description: Constructed recreation and camping facilities
@@ -150,6 +211,9 @@ layerGroups:
         defaultVisible: false
         opacity: 0.9
         signals: [camp, camping, campground, overnight, access, scouting]
+        identify:
+          category: Nearby places
+          titleFields: [RECAREANAME, FACILITYNAME, NAME]
 
 basemaps:
   - id: topo

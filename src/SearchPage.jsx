@@ -22,7 +22,10 @@ import config, { allLayers } from './config.js';
 import { deriveLayerStack } from './layerIntelligence.js';
 import { createLayer } from './mapLayers.js';
 import SiteHeader from './SiteHeader.jsx';
+import LocationSummaryPopup from './LocationSummaryPopup.jsx';
+import { useMapIdentify } from './useMapIdentify.js';
 import './search-page.css';
+import './location-summary.css';
 
 import '@arcgis/map-components/components/arcgis-map';
 import '@arcgis/map-components/components/arcgis-zoom';
@@ -52,7 +55,7 @@ function SearchPage() {
   const highlightHandle = useRef(null);
   const [query, setQuery] = useState('Find a 2026 hunting opportunity with useful access and boundary information');
   const [filters, setFilters] = useState(initialFilters);
-  const [selectedUnit, setSelectedUnit] = useState('39');
+  const [selectedUnit, setSelectedUnit] = useState('30A-1');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [stackOpen, setStackOpen] = useState(
     () => !window.matchMedia('(max-width: 760px)').matches,
@@ -60,6 +63,7 @@ function SearchPage() {
   const [manualOverrides, setManualOverrides] = useState({});
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [status, setStatus] = useState('Search assistant ready.');
+  const { summary: locationSummary, attach: attachIdentify, close: closeIdentify } = useMapIdentify(layerInstances, allLayers);
 
   const rankedLayers = useMemo(
     () => deriveLayerStack(allLayers, query, filters),
@@ -93,6 +97,7 @@ function SearchPage() {
       label: 'Idaho hunt opportunity search map',
       description: 'A synchronized map of units and GIS services derived from the current search criteria.',
     };
+    attachIdentify(mapElement.view);
     setStatus(`${composedLayers.size} services selected from the current search.`);
   };
 
@@ -223,6 +228,7 @@ function SearchPage() {
             <arcgis-locate slot="top-left" />
             <arcgis-scale-bar slot="bottom-left" unit="dual" />
           </arcgis-map>
+          <LocationSummaryPopup summary={locationSummary} onClose={closeIdentify} />
           <div className="map-result-count"><MapPin size={16} /><strong>24 matches</strong><span>in this map area</span></div>
           <aside className={stackOpen ? 'smart-stack is-open' : 'smart-stack'} aria-label="AI-selected map services">
             <button className="smart-stack-heading" onClick={() => setStackOpen(!stackOpen)} aria-expanded={stackOpen}>
