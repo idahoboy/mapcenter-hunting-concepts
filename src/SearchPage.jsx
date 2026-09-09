@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   BadgeCheck,
+  Bookmark,
+  BookmarkCheck,
   Car,
   ChevronDown,
   ChevronRight,
@@ -24,6 +26,7 @@ import { createLayer } from './mapLayers.js';
 import SiteHeader from './SiteHeader.jsx';
 import LocationSummaryPopup from './LocationSummaryPopup.jsx';
 import { useMapIdentify } from './useMapIdentify.js';
+import { useHuntPlan } from './useHuntPlan.js';
 import './search-page.css';
 import './location-summary.css';
 
@@ -64,6 +67,7 @@ function SearchPage() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [status, setStatus] = useState('Search assistant ready.');
   const { summary: locationSummary, attach: attachIdentify, close: closeIdentify, zoomTo: zoomToIdentify } = useMapIdentify(layerInstances, allLayers);
+  const { isSaved, toggle: toggleSavedHunt } = useHuntPlan();
 
   const rankedLayers = useMemo(
     () => deriveLayerStack(allLayers, query, filters),
@@ -215,7 +219,7 @@ function SearchPage() {
                   <div className="unit-title-row"><div><span>{item.typeLabel === 'Hunt area' ? `Hunt Area ${item.unit}` : `Game Management Unit ${item.unit}`}</span><h2>{item.title}</h2></div><strong className="match-score">{item.match}%<small>match</small></strong></div>
                   <div className="unit-facts"><span><Car size={15} />{item.drive}</span><span><Users size={15} />{item.access} access</span><span><Mountain size={15} />{item.terrain}</span></div>
                   <div className="unit-tags">{item.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
-                  <div className="unit-footer"><span><Clock3 size={14} />Services checked moments ago</span>{item.detailId ? <a href={`/hunt/${item.detailId}`} aria-label={`View details for ${item.title}`}>View details <ChevronRight size={15} /></a> : <button onClick={() => focusUnit(item)}>Show on map <ChevronRight size={15} /></button>}</div>
+                  <div className="unit-footer"><span><Clock3 size={14} />Services checked moments ago</span><div className="unit-actions">{item.detailId && <button className={isSaved(item.detailId) ? 'save-result saved' : 'save-result'} onClick={() => toggleSavedHunt(item.detailId)} aria-pressed={isSaved(item.detailId)}>{isSaved(item.detailId) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}{isSaved(item.detailId) ? 'Saved' : 'Save'}</button>}{item.detailId ? <a href={`/hunt/${item.detailId}`} aria-label={`View details for ${item.title}`}>View details <ChevronRight size={15} /></a> : <button onClick={() => focusUnit(item)}>Show on map <ChevronRight size={15} /></button>}</div></div>
                 </div>
               </article>
             ))}

@@ -1,7 +1,9 @@
-import { Accessibility, FileText, Map as MapIcon, MapPin, Search } from 'lucide-react';
+import { Accessibility, ClipboardList, Map as MapIcon, MapPin, Search } from 'lucide-react';
 import config from './config.js';
+import { useHuntPlan } from './useHuntPlan.js';
 
 function SiteHeader({ activeView, displayExpanded = false, onDisplay, children }) {
+  const { huntIds } = useHuntPlan();
   return (
     <header className="search-site-header shared-site-header">
       <a className="search-brand" href="/" aria-label="Idaho Hunt Planner home">
@@ -15,8 +17,8 @@ function SiteHeader({ activeView, displayExpanded = false, onDisplay, children }
         <a className={activeView === 'search' ? 'active' : ''} href="/search" aria-label="Opportunity search">
           <Search size={17} /><span>Opportunity search</span>
         </a>
-        <a className={activeView === 'detail' ? 'active' : ''} href="/hunt/82313" aria-label="Hunt details">
-          <FileText size={17} /><span>Hunt details</span>
+        <a className={activeView === 'plan' ? 'active' : ''} href="/compare" aria-label={`My Hunt Plan, ${huntIds.length} saved`}>
+          <ClipboardList size={17} /><span>My Hunt Plan</span>{huntIds.length > 0 && <b className="plan-count">{huntIds.length}</b>}
         </a>
       </nav>
       <button

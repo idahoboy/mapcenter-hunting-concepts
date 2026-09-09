@@ -3,6 +3,8 @@ import {
   Accessibility,
   AlertTriangle,
   ArrowLeft,
+  Bookmark,
+  BookmarkCheck,
   CalendarDays,
   Check,
   ChevronRight,
@@ -21,6 +23,7 @@ import {
 } from 'lucide-react';
 import FeatureLayer from '@arcgis/core/layers/FeatureLayer.js';
 import SiteHeader from './SiteHeader.jsx';
+import { useHuntPlan } from './useHuntPlan.js';
 import './hunt-detail.css';
 
 import '@arcgis/map-components/components/arcgis-map';
@@ -28,7 +31,7 @@ import '@arcgis/map-components/components/arcgis-zoom';
 import '@arcgis/map-components/components/arcgis-locate';
 import '@arcgis/map-components/components/arcgis-scale-bar';
 
-const hunts = {
+export const hunts = {
   '82313': {
     id: '82313',
     kind: 'Controlled hunt',
@@ -138,6 +141,8 @@ function HuntDetailPage({ huntId }) {
   const [largeText, setLargeText] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [status, setStatus] = useState('Loading hunt boundary.');
+  const { isSaved, toggle } = useHuntPlan();
+  const saved = isSaved(hunt.id);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -218,6 +223,7 @@ function HuntDetailPage({ huntId }) {
             <h2>{hunt.tag}</h2>
             {hunt.huntNumber && <p>Hunt #{hunt.huntNumber}</p>}
             <div className="tag-availability"><Check size={17} /><span><strong>{hunt.tagAvailability}</strong><small>{hunt.status}</small></span></div>
+            <button className={saved ? 'save-hunt saved' : 'save-hunt'} onClick={() => toggle(hunt.id)} aria-pressed={saved}>{saved ? <BookmarkCheck size={17} /> : <Bookmark size={17} />}{saved ? 'Saved to My Hunt Plan' : 'Save to My Hunt Plan'}</button>
             <a className="tag-primary" href="https://idfg.idaho.gov/buy_online/"><ShoppingCart size={17} />License & tag options</a>
             <a className="tag-secondary" href={hunt.sourceUrl}>View official record <ExternalLink size={14} /></a>
           </aside>

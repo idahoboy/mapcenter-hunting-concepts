@@ -356,6 +356,9 @@
 .unit-footer span { display: inline-flex; align-items: center; gap: .2rem; }
 .unit-footer a,
 .unit-footer button { position: relative; z-index: 3; display: inline-flex; align-items: center; gap: .2rem; padding: 0; border: 0; color: #2f694d; background: transparent; font-size: inherit; font-weight: 820; text-decoration: none; }
+.unit-actions { position: relative; z-index: 3; display: flex; gap: .42rem; align-items: center; }
+.unit-footer .save-result { min-height: 28px; padding: 0 .48rem; border: 1px solid #cbd5ce; border-radius: 999px; color: #365747; background: #f8faf8; }
+.unit-footer .save-result.saved { border-color: #315d47; color: white; background: #315d47; }
 
 .search-map-pane { position: relative; min-width: 0; min-height: 0; background: #dbe5df; }
 .search-map-pane arcgis-map { width: 100%; height: 100%; }

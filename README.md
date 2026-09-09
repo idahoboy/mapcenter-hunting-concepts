@@ -2,11 +2,12 @@
 
 A React 19 and ArcGIS Maps SDK proof of concept for a map-first, accessible Idaho hunting planner. The prototype uses live public GIS services already consumed by Idaho Fish and Game and keeps product configuration in YAML.
 
-Three connected design options are available:
+Four connected design options are available:
 
 - `/` — the activity-first Map Center concept;
 - `/search` — a VRBO-inspired opportunity search with filters, ranked unit cards, and a query-derived GIS service stack; and
-- `/hunt/82313` and `/hunt/78813` — controlled-hunt and general-season result-page examples with live boundaries, rules, statistics, access, and licensing information.
+- `/hunt/82313` and `/hunt/78813` — controlled-hunt and general-season result-page examples with live boundaries, rules, statistics, access, and licensing information; and
+- `/compare` — a persistent **My Hunt Plan** shortlist and side-by-side decision workspace. Hunts can be saved from search cards or detail pages and remain selected in the browser between visits.
 
 ## Run locally
 

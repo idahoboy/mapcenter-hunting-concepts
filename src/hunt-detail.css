@@ -24,6 +24,8 @@
 .tag-availability strong { font-size: .76rem; text-transform: capitalize; }
 .tag-availability small { margin-top: .08rem; color: #66756d; font-size: .56rem; }
 .tag-primary, .tag-secondary { display: flex; justify-content: center; align-items: center; gap: .4rem; min-height: 42px; border-radius: .55rem; font-size: .7rem; font-weight: 820; text-decoration: none; }
+.save-hunt { display: flex; justify-content: center; align-items: center; gap: .4rem; width: 100%; min-height: 42px; margin-bottom: .38rem; border: 1px solid #b9c8be; border-radius: .55rem; color: #315b47; background: #f4f7f4; font-size: .7rem; font-weight: 820; }
+.save-hunt.saved { border-color: #315d47; color: white; background: #315d47; }
 .tag-primary { color: white; background: var(--forest-800); }
 .tag-secondary { margin-top: .25rem; color: #3c614e; }
 .detail-anchor-nav { position: sticky; z-index: 15; top: 0; display: flex; justify-content: center; gap: clamp(.6rem, 3vw, 2.2rem); margin-top: 1rem; padding: .75rem 1rem; border-bottom: 1px solid #d8ddd7; background: rgba(245,245,241,.95); backdrop-filter: blur(10px); }

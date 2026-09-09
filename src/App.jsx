@@ -22,9 +22,12 @@ import { createLayer } from './mapLayers.js';
 import SearchPage from './SearchPage.jsx';
 import SiteHeader from './SiteHeader.jsx';
 import HuntDetailPage from './HuntDetailPage.jsx';
+import ComparePage from './ComparePage.jsx';
+import PlanTray from './PlanTray.jsx';
 import LocationSummaryPopup from './LocationSummaryPopup.jsx';
 import { useMapIdentify } from './useMapIdentify.js';
 import './location-summary.css';
+import './plan.css';
 
 import '@arcgis/map-components/components/arcgis-map';
 import '@arcgis/map-components/components/arcgis-zoom';
@@ -256,8 +259,11 @@ function PlannerPage() {
 
 function App() {
   const huntMatch = window.location.pathname.match(/^\/hunt\/(\d+)/);
-  if (huntMatch) return <HuntDetailPage huntId={huntMatch[1]} />;
-  return window.location.pathname.startsWith('/search') ? <SearchPage /> : <PlannerPage />;
+  let page;
+  if (huntMatch) page = <HuntDetailPage huntId={huntMatch[1]} />;
+  else if (window.location.pathname.startsWith('/compare')) page = <ComparePage />;
+  else page = window.location.pathname.startsWith('/search') ? <SearchPage /> : <PlannerPage />;
+  return <>{page}<PlanTray /></>;
 }
 
 export default App;
