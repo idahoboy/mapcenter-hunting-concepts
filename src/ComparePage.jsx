@@ -1,28 +1,31 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Bookmark, Check, ChevronRight, ExternalLink, Scale, X } from 'lucide-react';
-import { hunts } from './HuntDetailPage.jsx';
+import { AlertTriangle, ArrowLeft, Bookmark, ChevronRight, ExternalLink, Scale, X } from 'lucide-react';
 import CompareMap from './CompareMap.jsx';
 import SiteHeader from './SiteHeader.jsx';
 import { useHuntPlan } from './useHuntPlan.js';
+import { fetchCatalog } from './huntPlannerApi.js';
 
 const comparisonRows = [
   { label: 'Season dates', value: (hunt) => hunt.dates },
-  { label: 'Tag path', value: (hunt) => `${hunt.tagAvailability} · ${hunt.status}` },
+  { label: 'Tag', value: (hunt) => hunt.tag },
+  { label: 'Availability', value: (hunt) => hunt.tagAvailability },
   { label: 'Legal method', value: (hunt) => hunt.method },
-  { label: 'Area', value: (hunt) => `${hunt.areaLabel} · ${hunt.areaSize}` },
-  { label: 'Access reality', value: (hunt) => hunt.note },
-  { label: 'Recent outcome', value: (hunt) => hunt.id === '82313' ? '50% success · 5 harvested by 10 hunters (2025)' : '43 harvested · 27 boars and 16 sows (2015)' },
-  { label: 'Drawing', value: (hunt) => hunt.odds ? `${hunt.odds[0].success} first-choice success in ${hunt.odds[0].year}` : 'No controlled-hunt drawing' },
-  { label: 'Land context', value: (hunt) => hunt.ownership.length ? '71.5% private · 10.2% BLM · 8.8% USFS' : 'Agency acreage unavailable in source record' },
+  { label: 'Species / sex', value: (hunt) => `${hunt.species} · ${hunt.sex}` },
+  { label: 'Area', value: (hunt) => hunt.areaLabel },
+  { label: 'Season classification', value: (hunt) => hunt.season },
+  { label: 'API record', value: (hunt) => `Hunt ${hunt.id} · tag ${hunt.tagId}` },
 ];
 
 function ComparePage() {
-  const { huntIds, toggle, addAll } = useHuntPlan();
+  const { huntIds, toggle } = useHuntPlan();
   const [displayOpen, setDisplayOpen] = useState(false);
-  const selected = huntIds.map((id) => hunts[id]).filter(Boolean);
+  const [catalog, setCatalog] = useState([]);
+  const [apiState, setApiState] = useState('loading');
+  const selected = huntIds.map((id) => catalog.find((hunt) => hunt.id === id)).filter(Boolean);
 
   useEffect(() => {
     document.documentElement.dataset.motion = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'reduced' : 'full';
+    fetchCatalog().then((records) => { setCatalog(records); setApiState('ready'); }).catch(() => setApiState('error'));
   }, []);
 
   return (
@@ -35,8 +38,10 @@ function ComparePage() {
         <div className="compare-breadcrumb"><a href="/search"><ArrowLeft size={15} />Opportunity search</a></div>
         <header className="compare-hero"><span><Scale size={18} />Decision workspace</span><h1>Compare your hunt plan</h1><p>See the practical differences first, then return to each official record before making an application or purchase decision.</p></header>
 
-        {!selected.length ? (
-          <section className="empty-plan"><Bookmark size={28} /><h2>Your plan is ready for a first choice</h2><p>Save hunts from search results or start with the two source-backed examples in this concept.</p><button onClick={addAll}>Add both example hunts</button><a href="/search">Browse opportunities <ChevronRight size={15} /></a></section>
+        {apiState === 'loading' ? (
+          <section className="empty-plan"><Bookmark size={28} /><h2>Loading your live hunt plan…</h2><p>Resolving saved IDs against Hunt Planner API 1.1.</p></section>
+        ) : !selected.length ? (
+          <section className="empty-plan"><Bookmark size={28} /><h2>Your plan is ready for a first choice</h2><p>Save authoritative opportunities from the live Hunt Planner search.</p><a href="/search">Browse live opportunities <ChevronRight size={15} /></a></section>
         ) : (
           <>
             <CompareMap key={huntIds.join('-')} hunts={selected} />
@@ -48,9 +53,9 @@ function ComparePage() {
           </>
         )}
 
-        {selected.length === 1 && <aside className="add-other"><div><strong>Add a second hunt</strong><p>Comparison becomes more useful when alternatives share the same decision frame.</p></div>{Object.values(hunts).filter((hunt) => !huntIds.includes(hunt.id)).map((hunt) => <button key={hunt.id} onClick={() => toggle(hunt.id)}><Check size={15} />Add {hunt.areaLabel}</button>)}</aside>}
+        {selected.length === 1 && <aside className="add-other"><div><strong>Add another live hunt</strong><p>Comparison becomes more useful when alternatives share the same decision frame.</p></div><a href="/search">Browse API results <ChevronRight size={15} /></a></aside>}
 
-        {selected.length > 0 && <aside className="compare-warning"><AlertTriangle size={19} /><p><strong>Planning comparison, not the legal record.</strong> Seasons, quotas, access, and rules can change. Verify each selection with Idaho Fish and Game.</p><div>{selected.map((hunt) => <a href={hunt.sourceUrl} key={hunt.id}>Official {hunt.areaLabel} <ExternalLink size={12} /></a>)}</div></aside>}
+        {selected.length > 0 && <aside className="compare-warning"><AlertTriangle size={19} /><p><strong>Live API comparison, not the legal record.</strong> These facts are current API 1.1 responses; verify regulations and legal boundaries before hunting.</p><div>{selected.map((hunt) => <a href={hunt.sourceUrl} key={hunt.id}>Official hunt {hunt.id} <ExternalLink size={12} /></a>)}</div></aside>}
       </main>
     </div>
   );

@@ -1,22 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
-  BadgeCheck,
   Bookmark,
   BookmarkCheck,
-  Car,
+  CalendarDays,
   ChevronDown,
   ChevronRight,
-  Clock3,
+  Database,
   Filter,
   Layers3,
   MapPin,
-  Mountain,
+  PawPrint,
   Search,
-  SlidersHorizontal,
   Sparkles,
-  Trees,
-  Users,
+  Target,
   WandSparkles,
   X,
 } from 'lucide-react';
@@ -27,6 +24,7 @@ import SiteHeader from './SiteHeader.jsx';
 import LocationSummaryPopup from './LocationSummaryPopup.jsx';
 import { useMapIdentify } from './useMapIdentify.js';
 import { useHuntPlan } from './useHuntPlan.js';
+import { fetchHunts } from './huntPlannerApi.js';
 import './search-page.css';
 import './location-summary.css';
 
@@ -35,31 +33,23 @@ import '@arcgis/map-components/components/arcgis-zoom';
 import '@arcgis/map-components/components/arcgis-locate';
 import '@arcgis/map-components/components/arcgis-scale-bar';
 
-const opportunities = [
-  { unit: '30A-1', mapUnit: '30A', typeLabel: 'Hunt area', detailId: '82313', title: 'Controlled elk hunt 2111', region: 'Salmon Region', match: 96, drive: '3 hr 35 min', access: 'Limited', terrain: 'High desert', tags: ['Elk', 'Controlled hunt', '10 tags'], accent: '#336f53' },
-  { unit: '13', mapUnit: '13', typeLabel: 'GMU', detailId: '78813', title: 'General black bear season', region: 'Clearwater Region', match: 91, drive: '3 hr 50 min', access: 'Mixed', terrain: 'Canyon', tags: ['Black bear', 'General season', 'Unlimited tags'], accent: '#536f3b' },
-  { unit: '48', title: 'Pioneer Mountains', region: 'Magic Valley', match: 87, drive: '2 hr 44 min', access: 'Strong', terrain: 'Mountain', tags: ['Elk', 'Public land', 'Steeper terrain'], accent: '#6f5b3b' },
-  { unit: '22', title: 'Weiser River', region: 'Southwest', match: 82, drive: '1 hr 52 min', access: 'Mixed', terrain: 'Canyon', tags: ['Elk', 'Road access', 'Motor rules'], accent: '#785443' },
-  { unit: '32A', title: 'Payette River', region: 'Southwest', match: 79, drive: '1 hr 31 min', access: 'Strong', terrain: 'Timber', tags: ['Elk', 'Access Yes!', 'Camp nearby'], accent: '#3e6260' },
-];
-
 const initialFilters = {
   species: 'Any species',
-  season: 'Fall 2026',
+  season: '2026 seasons',
   huntType: 'Any hunt type',
-  access: 'Public access',
-  terrain: 'Any terrain',
-  travel: 'Within 3 hours',
 };
 
 function SearchPage() {
   const mapRef = useRef(null);
   const layerInstances = useRef(new Map());
   const highlightHandle = useRef(null);
-  const [query, setQuery] = useState('Find a 2026 hunting opportunity with useful access and boundary information');
+  const [query, setQuery] = useState('');
+  const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
-  const [selectedUnit, setSelectedUnit] = useState('30A-1');
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedHunt, setSelectedHunt] = useState(null);
+  const [opportunities, setOpportunities] = useState([]);
+  const [resultTotal, setResultTotal] = useState(0);
+  const [apiState, setApiState] = useState('loading');
   const [stackOpen, setStackOpen] = useState(
     () => !window.matchMedia('(max-width: 760px)').matches,
   );
@@ -68,6 +58,27 @@ function SearchPage() {
   const [status, setStatus] = useState('Search assistant ready.');
   const { summary: locationSummary, attach: attachIdentify, close: closeIdentify, zoomTo: zoomToIdentify } = useMapIdentify(layerInstances, allLayers);
   const { isSaved, toggle: toggleSavedHunt } = useHuntPlan();
+
+  useEffect(() => {
+    let active = true;
+    setApiState('loading');
+    fetchHunts({
+      search: submittedQuery,
+      species: filters.species === 'Any species' ? '' : filters.species,
+      huntType: filters.huntType,
+    }).then((result) => {
+      if (!active) return;
+      setOpportunities(result.rows);
+      setResultTotal(result.total);
+      setApiState('ready');
+      setStatus(`${result.total.toLocaleString()} live opportunities returned by Hunt Planner API 1.1.`);
+    }).catch(() => {
+      if (!active) return;
+      setApiState('error');
+      setStatus('Hunt Planner API 1.1 is temporarily unavailable.');
+    });
+    return () => { active = false; };
+  }, [submittedQuery, filters.species, filters.huntType]);
 
   const rankedLayers = useMemo(
     () => deriveLayerStack(allLayers, query, filters),
@@ -108,7 +119,8 @@ function SearchPage() {
   const optimizeMap = () => {
     setIsOptimizing(true);
     setManualOverrides({});
-    setStatus('Analyzing the search and service catalog.');
+    setSubmittedQuery(query.trim());
+    setStatus('Searching Hunt Planner API 1.1 and analyzing the service catalog.');
     window.setTimeout(() => {
       setIsOptimizing(false);
       setStackOpen(true);
@@ -128,12 +140,15 @@ function SearchPage() {
   };
 
   const focusUnit = async (item) => {
-    setSelectedUnit(item.unit);
+    setSelectedHunt(item.id);
     const layer = layerInstances.current.get('game-units');
     const view = mapRef.current?.view;
-    if (!layer || !view) return;
+    if (!layer || !view || !item.unit) {
+      setStatus(`${item.areaLabel} does not resolve to a single game management unit.`);
+      return;
+    }
     try {
-      const mapUnit = item.mapUnit ?? item.unit;
+      const mapUnit = item.unit;
       const response = await layer.queryFeatures({ where: `NAME = '${mapUnit}'`, outFields: ['NAME', 'Elk_Zone'], returnGeometry: true });
       const feature = response.features[0];
       if (!feature) return;
@@ -143,17 +158,14 @@ function SearchPage() {
       await view.goTo(feature.geometry.extent.expand(1.7), { duration: 500 });
       setStatus(`Map centered on Game Management Unit ${mapUnit}.`);
     } catch {
-      setStatus(`${item.unit} selected. Map focus is temporarily unavailable.`);
+      setStatus(`${item.areaLabel} selected. Map focus is temporarily unavailable.`);
     }
   };
 
   const filterOptions = {
-    species: ['Any species', 'Elk', 'Deer', 'Pronghorn', 'Moose', 'Turkey'],
-    season: ['Fall 2026', 'Spring 2027', 'Any season'],
+    species: ['Any species', 'Elk', 'Deer', 'Pronghorn', 'Black Bear', 'Moose', 'Turkey'],
+    season: ['2026 seasons'],
     huntType: ['Any hunt type', 'General season', 'Controlled hunt'],
-    access: ['Public access', 'Access Yes!', 'Any access'],
-    terrain: ['Any terrain', 'Foothills', 'Mountain', 'Canyon'],
-    travel: ['Within 3 hours', 'Within 90 minutes', 'Any distance'],
   };
 
   return (
@@ -167,11 +179,11 @@ function SearchPage() {
           <div className="ai-search-box">
             <span className="ai-search-icon" aria-hidden="true"><Sparkles size={21} /></span>
             <label>
-              <span>Describe the hunt you want</span>
-              <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && optimizeMap()} />
+              <span>Search live hunts by tag, area, or name</span>
+              <input value={query} placeholder="Try 30A-1, bear, or Pioneer" onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && optimizeMap()} />
             </label>
             <button onClick={optimizeMap} disabled={isOptimizing}>
-              <WandSparkles size={18} />{isOptimizing ? 'Optimizing…' : 'Optimize map'}
+              <WandSparkles size={18} />{isOptimizing ? 'Searching…' : 'Search & map'}
             </button>
           </div>
           <div className="filter-strip" aria-label="Search filters">
@@ -184,45 +196,37 @@ function SearchPage() {
                 <ChevronDown size={15} aria-hidden="true" />
               </label>
             ))}
-            <button className="all-filters-button" onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen}><SlidersHorizontal size={16} />All filters</button>
           </div>
-          {filtersOpen && (
-            <div className="filter-summary-panel">
-              <strong>More filters</strong>
-              <button>Weapon or method</button><button>Draw odds</button><button>Harvest success</button><button>Road density</button><button>Elevation</button>
-              <button className="close-inline" onClick={() => setFiltersOpen(false)} aria-label="Close filters"><X size={17} /></button>
-            </div>
-          )}
         </section>
 
         <section className="search-results-pane" id="search-results" aria-labelledby="results-title">
           <div className="results-toolbar">
-            <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">Hunt opportunities near Boise</h1><p>24 potential matches · ranked for your current criteria</p></div>
-            <label>Sort by <select defaultValue="match"><option value="match">Best match</option><option value="drive">Drive time</option><option value="access">Public access</option></select></label>
+            <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">2026 hunt opportunities</h1><p>{apiState === 'loading' ? 'Loading Hunt Planner API 1.1…' : apiState === 'error' ? 'Live data is temporarily unavailable' : `${resultTotal.toLocaleString()} authoritative records · showing first ${opportunities.length}`}</p></div>
+            <span className="live-data-badge"><Database size={14} />API 1.1 live</span>
           </div>
 
           <aside className="assistant-note">
             <span><Sparkles size={17} /></span>
-            <p><strong>Map assistant</strong> combined your filters with available GIS service metadata. Review its layer reasoning on the map.</p>
-            <small>Concept only</small>
+            <p><strong>Live catalog, map-assisted.</strong> Hunt facts come directly from Hunt Planner API 1.1; the map composes available GIS services around those results.</p>
+            <small>Source: IDFG</small>
           </aside>
 
           <div className="opportunity-list">
-            {opportunities.map((item, index) => (
-              <article className={selectedUnit === item.unit ? 'opportunity-card selected' : 'opportunity-card'} key={item.unit}>
-                <button className="card-hit-area" onClick={() => focusUnit(item)} aria-label={`Show ${item.typeLabel ?? 'Unit'} ${item.unit}, ${item.title}, on map`} />
-                <div className="unit-visual" style={{ '--unit-accent': item.accent }}>
-                  <span>{item.typeLabel ?? 'GMU'}</span><strong className={item.unit.length > 3 ? 'long-unit' : ''}>{item.unit}</strong><small>{item.region}</small>
-                  {index === 0 && <b><BadgeCheck size={14} />Top match</b>}
+            {opportunities.map((item) => (
+              <article className={selectedHunt === item.id ? 'opportunity-card selected' : 'opportunity-card'} key={item.id}>
+                <button className="card-hit-area" onClick={() => focusUnit(item)} aria-label={`Show ${item.tag}, ${item.areaLabel}, on map`} />
+                <div className="unit-visual" style={{ '--unit-accent': item.kind === 'Controlled hunt' ? '#336f53' : '#536f3b' }}>
+                  <span>{item.unit ? 'GMU context' : 'Hunt area'}</span><strong className={(item.unit ?? 'IDFG').length > 3 ? 'long-unit' : ''}>{item.unit ?? 'IDFG'}</strong><small>Hunt {item.id}</small>
                 </div>
                 <div className="unit-details">
-                  <div className="unit-title-row"><div><span>{item.typeLabel === 'Hunt area' ? `Hunt Area ${item.unit}` : `Game Management Unit ${item.unit}`}</span><h2>{item.title}</h2></div><strong className="match-score">{item.match}%<small>match</small></strong></div>
-                  <div className="unit-facts"><span><Car size={15} />{item.drive}</span><span><Users size={15} />{item.access} access</span><span><Mountain size={15} />{item.terrain}</span></div>
-                  <div className="unit-tags">{item.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
-                  <div className="unit-footer"><span><Clock3 size={14} />Services checked moments ago</span><div className="unit-actions">{item.detailId && <button className={isSaved(item.detailId) ? 'save-result saved' : 'save-result'} onClick={() => toggleSavedHunt(item.detailId)} aria-pressed={isSaved(item.detailId)}>{isSaved(item.detailId) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}{isSaved(item.detailId) ? 'Saved' : 'Save'}</button>}{item.detailId ? <a href={`/hunt/${item.detailId}`} aria-label={`View details for ${item.title}`}>View details <ChevronRight size={15} /></a> : <button onClick={() => focusUnit(item)}>Show on map <ChevronRight size={15} /></button>}</div></div>
+                  <div className="unit-title-row"><div><span>{item.kind} · {item.areaLabel}</span><h2>{item.tag}</h2></div></div>
+                  <div className="unit-facts"><span><CalendarDays size={15} />{item.dates}</span><span><Target size={15} />{item.method}</span><span><PawPrint size={15} />{item.sex}</span></div>
+                  <div className="unit-tags"><span>{item.species}</span><span>{item.season}</span><span>{item.tagAvailability}</span></div>
+                  <div className="unit-footer"><span><Database size={14} />Hunt Planner API {item.apiVersion}</span><div className="unit-actions"><button className={isSaved(item.id) ? 'save-result saved' : 'save-result'} onClick={() => toggleSavedHunt(item.id)} aria-pressed={isSaved(item.id)}>{isSaved(item.id) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}{isSaved(item.id) ? 'Saved' : 'Save'}</button><a href={`/hunt/${item.id}`} aria-label={`View details for ${item.tag}`}>View details <ChevronRight size={15} /></a></div></div>
                 </div>
               </article>
             ))}
+            {apiState === 'ready' && opportunities.length === 0 && <div className="api-empty"><Search size={24} /><strong>No live hunts matched those filters.</strong><span>Try a broader species, hunt type, or search term.</span></div>}
           </div>
         </section>
 
@@ -233,7 +237,7 @@ function SearchPage() {
             <arcgis-scale-bar slot="bottom-left" unit="dual" />
           </arcgis-map>
           <LocationSummaryPopup summary={locationSummary} onClose={closeIdentify} onZoom={zoomToIdentify} />
-          <div className="map-result-count"><MapPin size={16} /><strong>24 matches</strong><span>in this map area</span></div>
+          <div className="map-result-count"><MapPin size={16} /><strong>{resultTotal.toLocaleString()} hunts</strong><span>from API 1.1</span></div>
           <aside className={stackOpen ? 'smart-stack is-open' : 'smart-stack'} aria-label="AI-selected map services">
             <button className="smart-stack-heading" onClick={() => setStackOpen(!stackOpen)} aria-expanded={stackOpen}>
               <span><Sparkles size={17} /><span><small>Search-derived</small><strong>{composedLayers.size} services on</strong></span></span>

@@ -6,6 +6,25 @@ app:
   zoom: 6
   disclaimer: Boundaries are for planning only. Verify current seasons, rules, closures, and legal descriptions before hunting.
 
+dataProviders:
+  huntPlanner:
+    label: Hunt Planner API
+    version: '1.1'
+    baseUrl: /ifwis/huntplanner/api/1.1
+    docUrl: https://idfg.idaho.gov/ifwis/api/?doc=/ifwis/huntplanner/api/1.1/doc.yaml
+    status: active
+    seasonWindow:
+      start: '2026-01-01'
+      end: '2026-12-31'
+    pageSize: 25
+    catalogLimit: 5000
+  fishingPlanner:
+    label: Fishing Planner API
+    version: '2.0'
+    baseUrl: /ifwis/fishingplanner/api/2.0
+    docUrl: https://idfg.idaho.gov/ifwis/api/?doc=/ifwis/fishingplanner/api/2.0/doc.yaml
+    status: planned
+
 activities:
   - id: big-game
     label: Big game

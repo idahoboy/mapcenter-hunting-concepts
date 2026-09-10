@@ -12,21 +12,22 @@ const boundaryStyles = [
 ];
 
 function CompareMap({ hunts }) {
+  const mappedHunts = hunts.filter((hunt) => hunt.map);
   const mapRef = useRef(null);
   const extentsRef = useRef(new Map());
   const allExtentRef = useRef(null);
-  const [status, setStatus] = useState('Loading saved hunt boundaries.');
+  const [status, setStatus] = useState('Loading saved hunt map context.');
 
   const handleMapReady = async (event) => {
     const mapElement = event.target;
     if (!mapElement?.map || mapElement.dataset.planLoaded) return;
     mapElement.dataset.planLoaded = 'true';
     mapElement.view.aria = {
-      label: 'My Hunt Plan boundary comparison map',
-      description: 'Interactive map showing the boundaries of every saved hunt in the current comparison.',
+      label: 'My Hunt Plan GMU context map',
+      description: 'Interactive map showing inferred game-management-unit context for saved hunts.',
     };
 
-    const layers = hunts.map((hunt, index) => {
+    const layers = mappedHunts.map((hunt, index) => {
       const style = boundaryStyles[index % boundaryStyles.length];
       return new FeatureLayer({
         url: hunt.map.url,
@@ -49,8 +50,8 @@ function CompareMap({ hunts }) {
     try {
       const results = await Promise.all(layers.map(async (layer, index) => {
         await layer.load();
-        const result = await layer.queryExtent({ where: hunts[index].map.where });
-        if (result.extent) extentsRef.current.set(hunts[index].id, result.extent);
+        const result = await layer.queryExtent({ where: mappedHunts[index].map.where });
+        if (result.extent) extentsRef.current.set(mappedHunts[index].id, result.extent);
         return result.extent;
       }));
       const extents = results.filter(Boolean);
@@ -62,7 +63,7 @@ function CompareMap({ hunts }) {
           duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 650,
         });
       }
-      setStatus(`${extents.length} of ${hunts.length} saved hunt boundaries loaded.`);
+      setStatus(`${extents.length} of ${mappedHunts.length} inferred GMU boundaries loaded.`);
     } catch {
       setStatus('Some saved hunt boundaries are temporarily unavailable.');
     }
@@ -82,7 +83,7 @@ function CompareMap({ hunts }) {
     await mapRef.current.view.goTo(allExtentRef.current.expand(1.18), {
       duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 500,
     });
-    setStatus(`${hunts.length} saved hunt boundaries shown together.`);
+    setStatus(`${mappedHunts.length} inferred GMU boundaries shown together.`);
   };
 
   return (
@@ -96,9 +97,9 @@ function CompareMap({ hunts }) {
           <arcgis-zoom slot="top-left" />
           <arcgis-scale-bar slot="bottom-left" unit="dual" />
         </arcgis-map>
-        <div className="compare-map-legend" aria-label="Saved hunt boundary legend">
-          <span className="compare-map-legend-title"><span><MapPinned size={15} />Saved boundaries</span><button onClick={showAll} aria-label="Show all saved hunt boundaries"><Scan size={13} />All</button></span>
-          {hunts.map((hunt, index) => <button key={hunt.id} onClick={() => focusHunt(hunt)}><i style={{ '--boundary-color': boundaryStyles[index % boundaryStyles.length].css }} />{hunt.areaLabel}<Crosshair size={13} /></button>)}
+        <div className="compare-map-legend" aria-label="Saved hunt GMU context legend">
+          <span className="compare-map-legend-title"><span><MapPinned size={15} />GMU context</span><button onClick={showAll} aria-label="Show all inferred GMU boundaries"><Scan size={13} />All</button></span>
+          {mappedHunts.map((hunt, index) => <button key={hunt.id} onClick={() => focusHunt(hunt)}><i style={{ '--boundary-color': boundaryStyles[index % boundaryStyles.length].css }} />{hunt.areaLabel}<Crosshair size={13} /></button>)}
         </div>
       </div>
     </section>
