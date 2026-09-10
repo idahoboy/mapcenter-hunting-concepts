@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Bookmark, Check, ChevronRight, ExternalLink, Scale, X } from 'lucide-react';
 import { hunts } from './HuntDetailPage.jsx';
+import CompareMap from './CompareMap.jsx';
 import SiteHeader from './SiteHeader.jsx';
 import { useHuntPlan } from './useHuntPlan.js';
 
@@ -37,11 +38,14 @@ function ComparePage() {
         {!selected.length ? (
           <section className="empty-plan"><Bookmark size={28} /><h2>Your plan is ready for a first choice</h2><p>Save hunts from search results or start with the two source-backed examples in this concept.</p><button onClick={addAll}>Add both example hunts</button><a href="/search">Browse opportunities <ChevronRight size={15} /></a></section>
         ) : (
-          <div className={`comparison-grid columns-${selected.length}`}>
-            <div className="comparison-label-head"><span>Compared facts</span></div>
-            {selected.map((hunt) => <article className="compare-hunt-head" key={hunt.id}><div><small>{hunt.kind}</small><h2>{hunt.areaLabel}</h2><p>{hunt.species}</p></div><button onClick={() => toggle(hunt.id)} aria-label={`Remove ${hunt.areaLabel} from comparison`}><X size={16} /></button><a href={`/hunt/${hunt.id}`}>Open details <ChevronRight size={14} /></a></article>)}
-            {comparisonRows.map((row) => <div className="comparison-row" key={row.label}><h3>{row.label}</h3>{selected.map((hunt) => <div key={`${row.label}-${hunt.id}`}>{row.value(hunt)}</div>)}</div>)}
-          </div>
+          <>
+            <CompareMap key={huntIds.join('-')} hunts={selected} />
+            <div className={`comparison-grid columns-${selected.length}`}>
+              <div className="comparison-label-head"><span>Compared facts</span></div>
+              {selected.map((hunt) => <article className="compare-hunt-head" key={hunt.id}><div><small>{hunt.kind}</small><h2>{hunt.areaLabel}</h2><p>{hunt.species}</p></div><button onClick={() => toggle(hunt.id)} aria-label={`Remove ${hunt.areaLabel} from comparison`}><X size={16} /></button><a href={`/hunt/${hunt.id}`}>Open details <ChevronRight size={14} /></a></article>)}
+              {comparisonRows.map((row) => <div className="comparison-row" key={row.label}><h3>{row.label}</h3>{selected.map((hunt) => <div key={`${row.label}-${hunt.id}`}>{row.value(hunt)}</div>)}</div>)}
+            </div>
+          </>
         )}
 
         {selected.length === 1 && <aside className="add-other"><div><strong>Add a second hunt</strong><p>Comparison becomes more useful when alternatives share the same decision frame.</p></div>{Object.values(hunts).filter((hunt) => !huntIds.includes(hunt.id)).map((hunt) => <button key={hunt.id} onClick={() => toggle(hunt.id)}><Check size={15} />Add {hunt.areaLabel}</button>)}</aside>}
