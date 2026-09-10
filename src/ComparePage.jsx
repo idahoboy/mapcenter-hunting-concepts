@@ -45,7 +45,10 @@ function ComparePage() {
         ) : (
           <>
             <CompareMap key={huntIds.join('-')} hunts={selected} />
-            <div className={`comparison-grid columns-${selected.length}`}>
+            <div
+              className="comparison-grid"
+              style={{ '--comparison-count': selected.length }}
+            >
               <div className="comparison-label-head"><span>Compared facts</span></div>
               {selected.map((hunt) => <article className="compare-hunt-head" key={hunt.id}><div><small>{hunt.kind}</small><h2>{hunt.areaLabel}</h2><p>{hunt.species}</p></div><button onClick={() => toggle(hunt.id)} aria-label={`Remove ${hunt.areaLabel} from comparison`}><X size={16} /></button><a href={`/hunt/${hunt.id}`}>Open details <ChevronRight size={14} /></a></article>)}
               {comparisonRows.map((row) => <div className="comparison-row" key={row.label}><h3>{row.label}</h3>{selected.map((hunt) => <div key={`${row.label}-${hunt.id}`}>{row.value(hunt)}</div>)}</div>)}

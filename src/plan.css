@@ -32,8 +32,7 @@
 .compare-map-legend button { display: grid; grid-template-columns: 9px 1fr auto; gap: .38rem; align-items: center; min-height: 34px; padding: .32rem .42rem; border: 0; border-radius: .45rem; color: #294438; background: #f2f5f1; font-size: .6rem; font-weight: 800; text-align: left; }
 .compare-map-legend button:hover { background: #e7ede7; }
 .compare-map-legend i { width: 9px; height: 24px; border: 2px solid var(--boundary-color); border-radius: 3px; background: color-mix(in srgb, var(--boundary-color) 24%, transparent); }
-.comparison-grid { display: grid; grid-template-columns: 160px repeat(2,minmax(0,1fr)); overflow: hidden; border: 1px solid #d8ded9; border-radius: 1rem; background: white; box-shadow: 0 10px 30px rgba(23,47,36,.08); }
-.comparison-grid.columns-1 { grid-template-columns: 160px minmax(0,1fr); }
+.comparison-grid { display: grid; grid-template-columns: 160px repeat(var(--comparison-count, 1),minmax(0,1fr)); overflow: hidden; border: 1px solid #d8ded9; border-radius: 1rem; background: white; box-shadow: 0 10px 30px rgba(23,47,36,.08); }
 .comparison-label-head { padding: 1rem; color: #758079; background: #f1f4f0; font-size: .58rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
 .compare-hunt-head { position: relative; min-width: 0; padding: 1rem 2.6rem 1rem 1rem; border-left: 1px solid #e0e5e1; background: #f8faf7; }
 .compare-hunt-head small { color: #a15b35; font-size: .54rem; font-weight: 850; text-transform: uppercase; }
@@ -71,7 +70,7 @@
   .compare-map-heading p { margin-top:.25rem; }
   .compare-map-frame { height:310px; }
   .compare-map-legend { right:.5rem; top:.5rem; width:170px; }
-  .comparison-grid, .comparison-grid.columns-1 { display:block; }
+  .comparison-grid { display:block; }
   .comparison-label-head { display:none; }
   .compare-hunt-head { border-left:0; border-top:1px solid #e0e5e1; }
   .comparison-row { display:grid; grid-template-columns:1fr; padding:.8rem 1rem; border-top:1px solid #e3e7e3; }
