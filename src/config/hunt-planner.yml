@@ -1,5 +1,5 @@
 app:
-  name: Idaho Hunt Planner
+  name: Idaho Opportunity Explorer
   eyebrow: Idaho Fish and Game
   defaultBasemap: topo
   center: [-114.52, 45.5]
@@ -32,30 +32,33 @@ activities:
     icon: deer
     accent: '#9b5d32'
     suggestedLayers: [game-units, elk-zones, controlled-hunts, motorized-rules]
-  - id: turkey-upland
-    label: Turkey & upland
-    description: Turkey, grouse, pheasant, quail and chukar
-    icon: bird
-    accent: '#83672d'
-    suggestedLayers: [game-units, upland-restrictions, access-yes]
-  - id: waterfowl
-    label: Waterfowl
-    description: Duck, goose, swan and coot planning
-    icon: waves
-    accent: '#287d86'
-    suggestedLayers: [waterfowl-restrictions, access-yes, wmas]
-  - id: predator
-    label: Predator & furbearer
-    description: Wolf, bear, lion and trapping areas
-    icon: paw
-    accent: '#705b89'
-    suggestedLayers: [wolf-zones, furbearer-restrictions, access-yes]
   - id: access
-    label: Access & scouting
+    label: Access
     description: Public access, roads, trails and campgrounds
     icon: route
     accent: '#367257'
     suggestedLayers: [access-yes, wmas, surface-management, campgrounds]
+  - id: turkey-upland
+    label: Turkey
+    description: Future opportunity type
+    icon: bird
+    accent: '#83672d'
+    disabled: true
+    suggestedLayers: [game-units, upland-restrictions, access-yes]
+  - id: waterfowl
+    label: Waterfowl
+    description: Future opportunity type
+    icon: waves
+    accent: '#287d86'
+    disabled: true
+    suggestedLayers: [waterfowl-restrictions, access-yes, wmas]
+  - id: predator
+    label: Predators
+    description: Future opportunity type
+    icon: paw
+    accent: '#705b89'
+    disabled: true
+    suggestedLayers: [wolf-zones, furbearer-restrictions, access-yes]
 
 layerGroups:
   - id: hunt
@@ -229,10 +232,30 @@ layerGroups:
         url: https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_InfraRecreationSites_01/MapServer/0
         defaultVisible: false
         opacity: 0.9
-        signals: [camp, camping, campground, overnight, access, scouting]
+        signals: [camp, camping, campground, overnight, access]
         identify:
           category: Nearby places
           titleFields: [RECAREANAME, FACILITYNAME, NAME]
+
+  - id: support
+    label: Regions & support
+    description: Find the IDFG office and services responsible for a location.
+    layers:
+      - id: regions
+        label: IDFG administrative regions
+        description: Seven official regions used to route local support and services
+        type: feature
+        url: https://gisportal-idfg.idaho.gov/hosting/rest/services/Apps/QueryLayers/FeatureServer/2
+        defaultVisible: false
+        opacity: 0.72
+        signals: [region, regional, office, contact, support, service]
+        identify:
+          category: Regional support
+          titleFields: [NAME]
+          note: This region determines the local IDFG office and region-specific support available for this location.
+          link:
+            label: Regional offices & contacts
+            url: https://idfg.idaho.gov/offices
 
 basemaps:
   - id: topo

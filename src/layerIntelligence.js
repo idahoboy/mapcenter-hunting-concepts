@@ -20,14 +20,17 @@ export function deriveLayerStack(layers, query, filters) {
     .map((layer) => {
       const matches = (layer.signals ?? []).filter((signal) => terms.has(normalize(signal)));
       const foundationBoost = layer.id === 'game-units' ? 1.5 : 0;
-      const score = matches.length * 2 + foundationBoost;
+      const regionBoost = layer.id === 'regions' && filters.region?.length ? 1 : 0;
+      const score = matches.length * 2 + foundationBoost + regionBoost;
       return {
         ...layer,
         score,
         matches,
         reason: matches.length
           ? `Matched ${matches.slice(0, 3).join(', ')}`
-          : layer.id === 'game-units'
+          : layer.id === 'regions' && filters.region?.length
+            ? 'Provides regional support context'
+            : layer.id === 'game-units'
             ? 'Provides the comparison geography'
             : 'Available as a manual layer',
       };

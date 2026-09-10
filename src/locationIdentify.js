@@ -35,6 +35,7 @@ export function formatIdentifyFeature(definition, attributes, geometry = null) {
     layer: definition.label,
     title,
     note: identify.note,
+    link: identify.link,
     facts,
     geometry,
   };

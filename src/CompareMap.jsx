@@ -23,7 +23,7 @@ function CompareMap({ hunts }) {
     if (!mapElement?.map || mapElement.dataset.planLoaded) return;
     mapElement.dataset.planLoaded = 'true';
     mapElement.view.aria = {
-      label: 'My Hunt Plan GMU context map',
+      label: 'Saved opportunity GMU context map',
       description: 'Interactive map showing inferred game-management-unit context for saved hunts.',
     };
 

@@ -84,6 +84,8 @@ button, a, input, select { outline-offset: 3px; }
 .activity-card strong { font-size: .83rem; }
 .activity-card small { margin-top: .15rem; overflow: hidden; color: var(--muted); font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
 .activity-card > svg { color: #94a099; }
+.activity-card:disabled { cursor: not-allowed; opacity: .48; filter: grayscale(.7); background: #f1f2ef; }
+.activity-card:disabled:hover { transform: none; border-color: var(--border); box-shadow: none; }
 
 .plan-form { margin-top: 1.65rem; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }

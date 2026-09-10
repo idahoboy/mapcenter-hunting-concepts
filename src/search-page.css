@@ -172,18 +172,14 @@
 
 .filter-strip {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: .4rem;
   margin-top: .55rem;
-  overflow-x: auto;
-  scrollbar-width: none;
 }
 
-.filter-strip::-webkit-scrollbar { display: none; }
-
-.filter-chip,
+.multi-filter > summary,
 .all-filters-button {
-  flex: none;
   display: inline-flex;
   align-items: center;
   gap: .1rem;
@@ -197,15 +193,20 @@
   font-weight: 770;
 }
 
-.filter-chip select {
-  max-width: 132px;
-  border: 0;
-  outline: 0;
-  color: inherit;
-  background: transparent;
-  font-weight: inherit;
-  appearance: none;
-}
+.multi-filter { position: relative; flex: none; }
+.multi-filter > summary { list-style: none; cursor: pointer; }
+.multi-filter > summary::-webkit-details-marker { display: none; }
+.multi-filter[open] > summary { border-color: #66816f; color: #254936; background: #f0f5f1; }
+.multi-filter[open] > summary svg { transform: rotate(180deg); }
+.multi-filter-menu { position: absolute; z-index: 45; top: calc(100% + .35rem); left: 0; display: grid; min-width: 220px; padding: .5rem; border: 1px solid #cfd7d1; border-radius: .7rem; background: white; box-shadow: 0 12px 30px rgba(20,43,32,.18); }
+.multi-filter:last-child .multi-filter-menu { right: 0; left: auto; }
+.multi-filter-menu > div { display: flex; justify-content: space-between; align-items: center; padding: .25rem .3rem .4rem; }
+.multi-filter-menu > div strong { font-size: .66rem; }
+.multi-filter-menu > div button { border: 0; color: #356049; background: transparent; font-size: .58rem; font-weight: 800; }
+.multi-filter-menu > label { display: flex; gap: .5rem; align-items: center; min-height: 34px; padding: .28rem .32rem; border-radius: .4rem; color: #344a3f; font-size: .64rem; cursor: pointer; }
+.multi-filter-menu > label:hover { background: #f1f5f1; }
+.multi-filter-menu input[type='checkbox'] { width: 17px; height: 17px; border-radius: 3px; appearance: auto; accent-color: var(--forest-700); background: white; }
+.multi-filter-menu input[type='checkbox']::after { display: none; }
 
 .all-filters-button { gap: .35rem; }
 
@@ -426,7 +427,7 @@
   .ai-search-box > button { width: 40px; padding: 0; justify-content: center; }
   .ai-search-box > button { font-size: 0; }
   .filter-strip { justify-content: start; }
-  .filter-chip:nth-child(n+4) { display: none; }
+  .filter-strip { row-gap: .3rem; }
   .search-map-pane { order: 2; flex: 0 0 43vh; width: 100%; }
   .search-results-pane { order: 3; overflow: visible; width: 100%; border-right: 0; }
   .smart-stack { top: .5rem; right: .5rem; max-height: calc(100% - 1rem); }

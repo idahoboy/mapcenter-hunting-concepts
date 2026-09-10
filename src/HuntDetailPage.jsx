@@ -110,7 +110,7 @@ function HuntDetailPage({ huntId }) {
             <span className="tag-card-label">Live tag record</span><h2>{hunt.tag}</h2>
             {hunt.huntNumber && <p>Hunt #{hunt.huntNumber}</p>}
             <div className="tag-availability"><Database size={17} /><span><strong>{hunt.tagAvailability}</strong><small>Hunt Planner API 1.1</small></span></div>
-            <button className={saved ? 'save-hunt saved' : 'save-hunt'} onClick={() => toggle(hunt.id)} aria-pressed={saved}>{saved ? <BookmarkCheck size={17} /> : <Bookmark size={17} />}{saved ? 'Saved to My Hunt Plan' : 'Save to My Hunt Plan'}</button>
+            <button className={saved ? 'save-hunt saved' : 'save-hunt'} onClick={() => toggle(hunt.id)} aria-pressed={saved}>{saved ? <BookmarkCheck size={17} /> : <Bookmark size={17} />}{saved ? 'Saved to My plan' : 'Save to My plan'}</button>
             <a className="tag-primary" href="https://idfg.idaho.gov/buy_online/"><ShoppingCart size={17} />License & tag options</a>
             <a className="tag-secondary" href={hunt.sourceUrl}>View official record <ExternalLink size={14} /></a>
           </aside>

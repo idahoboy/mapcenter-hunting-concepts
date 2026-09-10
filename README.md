@@ -1,13 +1,15 @@
-# Idaho Hunt Planner — modern map-center prototype
+# Idaho Opportunity Explorer — modern map-center prototype
 
-A React 19 and ArcGIS Maps SDK proof of concept for a map-first, accessible Idaho hunting planner. Hunt facts come from the live Hunt Planner API 1.1, geometry comes from live public GIS services, and product configuration remains in YAML.
+A React 19 and ArcGIS Maps SDK proof of concept for a map-first, accessible Idaho opportunity explorer. Hunt facts come from the live Hunt Planner API 1.1, geometry comes from live public GIS services, and product configuration remains in YAML.
 
 Four connected design options are available:
 
 - `/` — the activity-first Map Center concept;
 - `/search` — a VRBO-inspired opportunity search with filters, ranked unit cards, and a query-derived GIS service stack; and
 - `/hunt/82313` and `/hunt/78813` — controlled-hunt and general-season result-page examples with live boundaries, rules, statistics, access, and licensing information; and
-- `/compare` — a persistent **My Hunt Plan** shortlist and side-by-side decision workspace with a live, combined ArcGIS boundary map. Hunts can be saved from search cards or detail pages and remain selected in the browser between visits.
+- `/compare` — a persistent **My plan** shortlist and side-by-side decision workspace with a live, combined ArcGIS boundary map. Opportunities can be saved from search cards or detail pages and remain selected in the browser between visits.
+
+Opportunity filters support multiple simultaneous selections. Region filtering and the toggleable **IDFG administrative regions** layer are derived at runtime from IDFG's live region and GMU services; no region GeoJSON is bundled with the app.
 
 ## Run locally
 

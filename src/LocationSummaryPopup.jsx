@@ -28,6 +28,7 @@ function LocationSummaryPopup({ summary, onClose, onZoom }) {
                   <span><strong>{match.title}</strong><small>{match.layer}</small></span>
                   {match.note && <p>{match.note}</p>}
                   {match.facts.length > 0 && <dl>{match.facts.map((fact) => <div key={`${match.id}-${fact.label}`}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl>}
+                  {match.link && <a className="identify-support-link" href={match.link.url}>{match.link.label}</a>}
                   {match.geometry && <button className="identify-zoom" onClick={() => onZoom(match)}><ScanSearch size={14} />Zoom to {match.geometry.extent ? 'boundary' : 'location'}</button>}
                 </article>
               ))}

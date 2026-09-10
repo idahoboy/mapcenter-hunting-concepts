@@ -102,7 +102,7 @@ function PlannerPage() {
 
     if (mapElement.view) {
       mapElement.view.aria = {
-        label: 'Interactive Idaho hunt planning map',
+        label: 'Interactive Idaho opportunity map',
         description:
           'Explore game units, hunt boundaries, restrictions, public access, and land-management context.',
       };
@@ -123,6 +123,7 @@ function PlannerPage() {
   };
 
   const selectActivity = (activity) => {
+    if (activity.disabled) return;
     setActiveActivity(activity.id);
     const suggested = new Set(activity.suggestedLayers);
     const nextState = { ...layerState };
@@ -175,21 +176,22 @@ function PlannerPage() {
                 return (
                   <button
                     key={activity.id}
-                    className={selected ? 'activity-card selected' : 'activity-card'}
+                    className={`${selected ? 'activity-card selected' : 'activity-card'}${activity.disabled ? ' disabled' : ''}`}
                     style={{ '--activity-accent': activity.accent }}
                     onClick={() => selectActivity(activity)}
                     aria-pressed={selected}
+                    disabled={activity.disabled}
                   >
                     <span className="activity-icon"><Icon size={20} /></span>
-                    <span><strong>{activity.label}</strong><small>{activity.description}</small></span>
-                    <ChevronRight size={18} aria-hidden="true" />
+                    <span><strong>{activity.label}</strong><small>{activity.disabled ? 'Coming soon' : activity.description}</small></span>
+                    {!activity.disabled && <ChevronRight size={18} aria-hidden="true" />}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="plan-form" aria-label="Hunt planning search">
+          <div className="plan-form" aria-label="Opportunity search">
             <div className="section-label"><span>2</span><h2>Narrow the map</h2></div>
             <div className="field-row">
               <label><span>Species</span><select defaultValue="elk"><option value="elk">Elk</option><option value="deer">Deer</option><option value="pronghorn">Pronghorn</option><option value="moose">Moose</option><option value="turkey">Turkey</option></select></label>
@@ -247,7 +249,7 @@ function PlannerPage() {
         </section>
       </main>
 
-      <footer className="mobile-dock" aria-label="Planner shortcuts">
+      <footer className="mobile-dock" aria-label="Opportunity Explorer shortcuts">
         <button className="active"><MapIcon size={20} /><span>Map</span></button>
         <button onClick={() => setLayersOpen(true)}><Layers3 size={20} /><span>Layers</span></button>
         <button><SlidersHorizontal size={20} /><span>Plan</span></button>

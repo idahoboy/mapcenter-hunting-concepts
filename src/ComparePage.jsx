@@ -36,12 +36,12 @@ function ComparePage() {
       </SiteHeader>
       <main id="comparison">
         <div className="compare-breadcrumb"><a href="/search"><ArrowLeft size={15} />Opportunity search</a></div>
-        <header className="compare-hero"><span><Scale size={18} />Decision workspace</span><h1>Compare your hunt plan</h1><p>See the practical differences first, then return to each official record before making an application or purchase decision.</p></header>
+        <header className="compare-hero"><span><Scale size={18} />Decision workspace</span><h1>Compare your opportunities</h1><p>See the practical differences first, then return to each official record before making an application or purchase decision.</p></header>
 
         {apiState === 'loading' ? (
-          <section className="empty-plan"><Bookmark size={28} /><h2>Loading your live hunt plan…</h2><p>Resolving saved IDs against Hunt Planner API 1.1.</p></section>
+          <section className="empty-plan"><Bookmark size={28} /><h2>Loading your saved opportunities…</h2><p>Resolving saved IDs against Hunt Planner API 1.1.</p></section>
         ) : !selected.length ? (
-          <section className="empty-plan"><Bookmark size={28} /><h2>Your plan is ready for a first choice</h2><p>Save authoritative opportunities from the live Hunt Planner search.</p><a href="/search">Browse live opportunities <ChevronRight size={15} /></a></section>
+          <section className="empty-plan"><Bookmark size={28} /><h2>Your plan is ready for a first choice</h2><p>Save authoritative opportunities from the Opportunity Explorer.</p><a href="/search">Browse live opportunities <ChevronRight size={15} /></a></section>
         ) : (
           <>
             <CompareMap key={huntIds.join('-')} hunts={selected} />

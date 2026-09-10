@@ -20,6 +20,7 @@
 .identify-results dd { margin: 0; color: #41564b; font-size: .58rem; font-weight: 760; }
 .identify-zoom { display: inline-flex; align-items: center; gap: .28rem; margin-top: .42rem; padding: .3rem .42rem; border: 1px solid #d4dcd6; border-radius: .4rem; color: #315d47; background: #f8faf7; font-size: .56rem; font-weight: 820; }
 .identify-zoom:hover { border-color: #75927f; background: #edf4ef; }
+.identify-support-link { display: inline-flex; margin-top: .42rem; color: #315d47; font-size: .58rem; font-weight: 820; }
 .identify-loading, .identify-empty { display: flex; justify-content: center; gap: .55rem; align-items: center; min-height: 110px; padding: 1rem; color: #64736b; }
 .identify-loading { font-size: .66rem; font-weight: 750; }
 .identify-loading svg { animation: identify-spin .9s linear infinite; }

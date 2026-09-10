@@ -24,7 +24,9 @@ import SiteHeader from './SiteHeader.jsx';
 import LocationSummaryPopup from './LocationSummaryPopup.jsx';
 import { useMapIdentify } from './useMapIdentify.js';
 import { useHuntPlan } from './useHuntPlan.js';
-import { fetchHunts } from './huntPlannerApi.js';
+import { fetchCatalog } from './huntPlannerApi.js';
+import { filterOpportunities } from './opportunityFilters.js';
+import { fetchRegionLookup, REGION_NAMES } from './regionContext.js';
 import './search-page.css';
 import './location-summary.css';
 
@@ -34,10 +36,40 @@ import '@arcgis/map-components/components/arcgis-locate';
 import '@arcgis/map-components/components/arcgis-scale-bar';
 
 const initialFilters = {
-  species: 'Any species',
-  season: '2026 seasons',
-  huntType: 'Any hunt type',
+  species: [],
+  season: [],
+  huntType: [],
+  region: [],
 };
+
+const filterOptions = {
+  species: { label: 'Species', options: ['Elk', 'Deer', 'Pronghorn', 'Black Bear', 'Moose'] },
+  season: { label: 'Season', options: ['Any Weapon', 'Archery', 'Muzzleloader', 'Short-Range Weapon', 'Youth'] },
+  huntType: { label: 'Hunt type', options: ['General season', 'Controlled hunt'] },
+  region: { label: 'Region', options: REGION_NAMES },
+};
+
+function MultiSelectFilter({ label, options, selected, onChange }) {
+  const summary = selected.length === 0 ? label : selected.length === 1 ? selected[0] : `${label} · ${selected.length}`;
+  return (
+    <details className="multi-filter">
+      <summary>{summary}<ChevronDown size={15} aria-hidden="true" /></summary>
+      <div className="multi-filter-menu" aria-label={`${label} options`}>
+        <div><strong>{label}</strong>{selected.length > 0 && <button type="button" onClick={() => onChange([])}>Clear</button>}</div>
+        {options.map((option) => (
+          <label key={option}>
+            <input
+              type="checkbox"
+              checked={selected.includes(option)}
+              onChange={() => onChange(selected.includes(option) ? selected.filter((value) => value !== option) : [...selected, option])}
+            />
+            <span>{option}</span>
+          </label>
+        ))}
+      </div>
+    </details>
+  );
+}
 
 function SearchPage() {
   const mapRef = useRef(null);
@@ -47,8 +79,9 @@ function SearchPage() {
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
   const [selectedHunt, setSelectedHunt] = useState(null);
-  const [opportunities, setOpportunities] = useState([]);
-  const [resultTotal, setResultTotal] = useState(0);
+  const [catalog, setCatalog] = useState([]);
+  const [regionLookup, setRegionLookup] = useState(new Map());
+  const [regionState, setRegionState] = useState('loading');
   const [apiState, setApiState] = useState('loading');
   const [stackOpen, setStackOpen] = useState(
     () => !window.matchMedia('(max-width: 760px)').matches,
@@ -62,23 +95,37 @@ function SearchPage() {
   useEffect(() => {
     let active = true;
     setApiState('loading');
-    fetchHunts({
-      search: submittedQuery,
-      species: filters.species === 'Any species' ? '' : filters.species,
-      huntType: filters.huntType,
-    }).then((result) => {
+    fetchCatalog().then((records) => {
       if (!active) return;
-      setOpportunities(result.rows);
-      setResultTotal(result.total);
+      setCatalog(records);
       setApiState('ready');
-      setStatus(`${result.total.toLocaleString()} live opportunities returned by Hunt Planner API 1.1.`);
+      setStatus(`${records.length.toLocaleString()} live opportunities returned by Hunt Planner API 1.1.`);
     }).catch(() => {
       if (!active) return;
       setApiState('error');
       setStatus('Hunt Planner API 1.1 is temporarily unavailable.');
     });
     return () => { active = false; };
-  }, [submittedQuery, filters.species, filters.huntType]);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetchRegionLookup().then((lookup) => {
+      if (!active) return;
+      setRegionLookup(lookup);
+      setRegionState('ready');
+    }).catch(() => {
+      if (active) setRegionState('error');
+    });
+    return () => { active = false; };
+  }, []);
+
+  const filteredOpportunities = useMemo(
+    () => filterOpportunities(catalog, { search: submittedQuery, filters, regionLookup }),
+    [catalog, submittedQuery, filters, regionLookup],
+  );
+  const resultTotal = filteredOpportunities.length;
+  const opportunities = filteredOpportunities.slice(0, config.dataProviders.huntPlanner.pageSize);
 
   const rankedLayers = useMemo(
     () => deriveLayerStack(allLayers, query, filters),
@@ -128,8 +175,8 @@ function SearchPage() {
     }, 650);
   };
 
-  const updateFilter = (key, value) => {
-    setFilters((current) => ({ ...current, [key]: value }));
+  const updateFilter = (key, values) => {
+    setFilters((current) => ({ ...current, [key]: values }));
     setManualOverrides({});
   };
 
@@ -162,12 +209,6 @@ function SearchPage() {
     }
   };
 
-  const filterOptions = {
-    species: ['Any species', 'Elk', 'Deer', 'Pronghorn', 'Black Bear', 'Moose', 'Turkey'],
-    season: ['2026 seasons'],
-    huntType: ['Any hunt type', 'General season', 'Controlled hunt'],
-  };
-
   return (
     <div className="search-page-shell">
       <a className="skip-link" href="#search-results">Skip to hunt opportunities</a>
@@ -187,14 +228,14 @@ function SearchPage() {
             </button>
           </div>
           <div className="filter-strip" aria-label="Search filters">
-            {Object.entries(filterOptions).map(([key, options]) => (
-              <label className="filter-chip" key={key}>
-                <span className="sr-only">{key}</span>
-                <select value={filters[key]} onChange={(event) => updateFilter(key, event.target.value)}>
-                  {options.map((option) => <option key={option}>{option}</option>)}
-                </select>
-                <ChevronDown size={15} aria-hidden="true" />
-              </label>
+            {Object.entries(filterOptions).map(([key, definition]) => (
+              <MultiSelectFilter
+                key={key}
+                label={definition.label}
+                options={definition.options}
+                selected={filters[key]}
+                onChange={(values) => updateFilter(key, values)}
+              />
             ))}
           </div>
         </section>
@@ -207,7 +248,7 @@ function SearchPage() {
 
           <aside className="assistant-note">
             <span><Sparkles size={17} /></span>
-            <p><strong>Live catalog, map-assisted.</strong> Hunt facts come directly from Hunt Planner API 1.1; the map composes available GIS services around those results.</p>
+            <p><strong>Live catalog, map-assisted.</strong> Hunt facts come directly from Hunt Planner API 1.1; region context is derived from live IDFG administrative boundaries.</p>
             <small>Source: IDFG</small>
           </aside>
 
@@ -221,12 +262,12 @@ function SearchPage() {
                 <div className="unit-details">
                   <div className="unit-title-row"><div><span>{item.kind} · {item.areaLabel}</span><h2>{item.tag}</h2></div></div>
                   <div className="unit-facts"><span><CalendarDays size={15} />{item.dates}</span><span><Target size={15} />{item.method}</span><span><PawPrint size={15} />{item.sex}</span></div>
-                  <div className="unit-tags"><span>{item.species}</span><span>{item.season}</span><span>{item.tagAvailability}</span></div>
+                  <div className="unit-tags"><span>{item.species}</span><span>{item.season}</span><span>{item.tagAvailability}</span>{item.unit && regionLookup.get(item.unit)?.map((region) => <span key={region}>{region}</span>)}</div>
                   <div className="unit-footer"><span><Database size={14} />Hunt Planner API {item.apiVersion}</span><div className="unit-actions"><button className={isSaved(item.id) ? 'save-result saved' : 'save-result'} onClick={() => toggleSavedHunt(item.id)} aria-pressed={isSaved(item.id)}>{isSaved(item.id) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}{isSaved(item.id) ? 'Saved' : 'Save'}</button><a href={`/hunt/${item.id}`} aria-label={`View details for ${item.tag}`}>View details <ChevronRight size={15} /></a></div></div>
                 </div>
               </article>
             ))}
-            {apiState === 'ready' && opportunities.length === 0 && <div className="api-empty"><Search size={24} /><strong>No live hunts matched those filters.</strong><span>Try a broader species, hunt type, or search term.</span></div>}
+            {apiState === 'ready' && opportunities.length === 0 && <div className="api-empty"><Search size={24} /><strong>No live hunts matched those filters.</strong><span>{filters.region.length && regionState === 'loading' ? 'Matching GMUs to live regional boundaries…' : 'Try broader species, hunt type, region, or search terms.'}</span></div>}
           </div>
         </section>
 
@@ -237,7 +278,7 @@ function SearchPage() {
             <arcgis-scale-bar slot="bottom-left" unit="dual" />
           </arcgis-map>
           <LocationSummaryPopup summary={locationSummary} onClose={closeIdentify} onZoom={zoomToIdentify} />
-          <div className="map-result-count"><MapPin size={16} /><strong>{resultTotal.toLocaleString()} hunts</strong><span>from API 1.1</span></div>
+          <div className="map-result-count"><MapPin size={16} /><strong>{resultTotal.toLocaleString()} opportunities</strong><span>from API 1.1</span></div>
           <aside className={stackOpen ? 'smart-stack is-open' : 'smart-stack'} aria-label="AI-selected map services">
             <button className="smart-stack-heading" onClick={() => setStackOpen(!stackOpen)} aria-expanded={stackOpen}>
               <span><Sparkles size={17} /><span><small>Search-derived</small><strong>{composedLayers.size} services on</strong></span></span>

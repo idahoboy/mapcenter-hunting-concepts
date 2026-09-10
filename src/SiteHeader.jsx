@@ -6,19 +6,19 @@ function SiteHeader({ activeView, displayExpanded = false, onDisplay, children }
   const { huntIds } = useHuntPlan();
   return (
     <header className="search-site-header shared-site-header">
-      <a className="search-brand" href="/" aria-label="Idaho Hunt Planner home">
+      <a className="search-brand" href="/" aria-label="Idaho Opportunity Explorer home">
         <span className="brand-mark" aria-hidden="true"><MapPin size={21} /></span>
         <span><small>{config.app.eyebrow}</small>{config.app.name}</span>
       </a>
-      <nav aria-label="Planner views">
+      <nav aria-label="Opportunity Explorer views">
         <a className={activeView === 'map' ? 'active' : ''} href="/" aria-label="Map center">
           <MapIcon size={17} /><span>Map center</span>
         </a>
         <a className={activeView === 'search' ? 'active' : ''} href="/search" aria-label="Opportunity search">
           <Search size={17} /><span>Opportunity search</span>
         </a>
-        <a className={activeView === 'plan' ? 'active' : ''} href="/compare" aria-label={`My Hunt Plan, ${huntIds.length} saved`}>
-          <ClipboardList size={17} /><span>My Hunt Plan</span>{huntIds.length > 0 && <b className="plan-count">{huntIds.length}</b>}
+        <a className={activeView === 'plan' ? 'active' : ''} href="/compare" aria-label={`My plan, ${huntIds.length} saved`}>
+          <ClipboardList size={17} /><span>My plan</span>{huntIds.length > 0 && <b className="plan-count">{huntIds.length}</b>}
         </a>
       </nav>
       <button

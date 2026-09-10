@@ -44,4 +44,13 @@ describe('hunt planner YAML configuration', () => {
 
     expect(ranked.findIndex((layer) => layer.id === 'controlled-hunts')).toBeLessThan(5);
   });
+
+  it('turns regional support context into a recommended layer', () => {
+    const ranked = deriveLayerStack(allLayers, '', {
+      species: [], season: [], huntType: [], region: ['Panhandle Region'],
+    });
+    const regions = ranked.find((layer) => layer.id === 'regions');
+
+    expect(regions.score).toBeGreaterThanOrEqual(2.5);
+  });
 });
