@@ -18,9 +18,11 @@ const formatDate = (value) => {
 
 export const inferUnit = (row) => {
   const source = `${row.area ?? ''} ${row.tagarea ?? ''}`;
-  const explicit = source.match(/\bUnits?\s+(\d{1,2}[A]?)\b/i);
+  const explicit = source.match(/\bUnits?\s+(\d{1,2}[AB]?)\b/i);
   if (explicit) return explicit[1].toUpperCase();
-  const areaCode = String(row.area ?? '').match(/^(\d{1,2}[A]?)(?:-|$)/i);
+  const extraArea = String(row.area ?? '').match(/^(\d{1,2})X(?:-|$)/i);
+  if (extraArea) return extraArea[1];
+  const areaCode = String(row.area ?? '').match(/^(\d{1,2}[AB]?)(?:-|$)/i);
   return areaCode?.[1]?.toUpperCase() ?? null;
 };
 

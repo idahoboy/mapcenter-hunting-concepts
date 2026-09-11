@@ -5,7 +5,7 @@ export function getHuntMapUnits(hunt) {
   const areaLabel = String(hunt.areaLabel ?? '').trim();
   const labelUnits = /^units?\b/i.test(areaLabel)
     ? areaLabel.match(UNIT_PATTERN) ?? []
-    : (!hunt.unit && /^\d{1,2}[A-Z]?$/i.test(areaLabel) ? [areaLabel] : []);
+    : (!hunt.unit && /^\d{1,2}[AB]?$/i.test(areaLabel) ? [areaLabel] : []);
 
   return [...new Set(
     [...units, ...labelUnits].map((unit) => unit.toUpperCase()),

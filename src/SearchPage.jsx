@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Graphic from '@arcgis/core/Graphic.js';
 import {
   ArrowLeft,
   Bookmark,
@@ -78,6 +79,7 @@ function SearchPage() {
   const mapRef = useRef(null);
   const layerInstances = useRef(new Map());
   const highlightHandle = useRef(null);
+  const selectionGraphics = useRef([]);
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
@@ -95,6 +97,12 @@ function SearchPage() {
   const [status, setStatus] = useState('Search assistant ready.');
   const { summary: locationSummary, attach: attachIdentify, close: closeIdentify, zoomTo: zoomToIdentify } = useMapIdentify(layerInstances, allLayers);
   const { isSaved, toggle: toggleSavedHunt } = useHuntPlan();
+
+  useEffect(() => () => {
+    highlightHandle.current?.remove();
+    const view = mapRef.current?.view;
+    if (view && selectionGraphics.current.length) view.graphics.removeMany(selectionGraphics.current);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -250,8 +258,20 @@ function SearchPage() {
       });
       if (!response.features.length) throw new Error('No matching GMU boundaries');
       highlightHandle.current?.remove();
+      if (selectionGraphics.current.length) view.graphics.removeMany(selectionGraphics.current);
       const layerView = await view.whenLayerView(layer);
       highlightHandle.current = layerView.highlight(response.features);
+      selectionGraphics.current = response.features.map((feature) => new Graphic({
+        geometry: feature.geometry,
+        attributes: { ...feature.attributes, selectedHuntId: item.id },
+        symbol: {
+          type: 'simple-fill',
+          color: [196, 84, 38, 0.3],
+          outline: { color: [116, 43, 20, 1], width: 3 },
+        },
+        popupTemplate: null,
+      }));
+      view.graphics.addMany(selectionGraphics.current);
       const extent = getCombinedExtent(response.features);
       if (extent) {
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

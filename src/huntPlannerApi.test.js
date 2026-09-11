@@ -11,4 +11,9 @@ describe('Hunt Planner API adapter', () => {
   it('extracts a GMU from general-season area text', () => {
     expect(inferUnit({ area: 'Unit 13', tagarea: 'Black Bear Tag' })).toBe('13');
   });
+
+  it('distinguishes GMU subunits from extra-hunt area suffixes', () => {
+    expect(inferUnit({ area: '36B', tagarea: '' })).toBe('36B');
+    expect(inferUnit({ area: '41X', tagarea: '' })).toBe('41');
+  });
 });
