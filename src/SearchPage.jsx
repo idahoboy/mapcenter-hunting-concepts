@@ -56,8 +56,15 @@ const filterOptions = {
 };
 
 const alphaCompare = (a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true, sensitivity: 'base' });
-const sortOpportunities = (rows) => [...rows].sort((a, b) =>
-  alphaCompare(a.areaLabel || a.unit, b.areaLabel || b.unit) || alphaCompare(a.tag, b.tag) || alphaCompare(a.id, b.id));
+const dateValue = (hunt) => {
+  const [month, day, year] = String(hunt.open ?? '').split('/').map(Number);
+  return month && day && year ? new Date(2000 + year, month - 1, day).getTime() : Number.MAX_SAFE_INTEGER;
+};
+const sortOpportunities = (rows, mode) => [...rows].sort((a, b) => {
+  if (mode === 'date') return dateValue(a) - dateValue(b) || alphaCompare(a.areaLabel || a.unit, b.areaLabel || b.unit);
+  const key = mode === 'tag' ? 'tag' : mode === 'sex' ? 'sex' : mode === 'species' ? 'species' : mode === 'weapon' ? 'method' : 'areaLabel';
+  return alphaCompare(a[key] || (key === 'areaLabel' ? a.unit : ''), b[key] || (key === 'areaLabel' ? b.unit : '')) || alphaCompare(a.id, b.id);
+});
 const speciesMatches = (hunt, option) => option === 'Deer'
   ? String(hunt.species ?? '').toLowerCase().includes('deer')
   : String(hunt.species ?? '') === option;
@@ -186,13 +193,15 @@ function SearchPage() {
     [catalog, submittedQuery, filters, regionLookup, aiPlan],
   );
   const resultTotal = filteredOpportunities.length;
-  const sortedOpportunities = useMemo(() => sortOpportunities(filteredOpportunities), [filteredOpportunities]);
+  const sortedOpportunities = useMemo(() => sortOpportunities(filteredOpportunities, resultView), [filteredOpportunities, resultView]);
   const opportunities = sortedOpportunities.slice(0, config.dataProviders.huntPlanner.pageSize);
   const groupedOpportunities = useMemo(() => {
-    if (resultView !== 'location') return [{ label: null, items: opportunities }];
+    if (!['location', 'tag', 'sex', 'species', 'weapon'].includes(resultView)) return [{ label: null, items: opportunities }];
     const groups = new Map();
     opportunities.forEach((hunt) => {
-      const label = hunt.areaLabel || (hunt.unit ? `Unit ${hunt.unit}` : 'Unspecified location');
+      const label = resultView === 'location'
+        ? hunt.areaLabel || (hunt.unit ? `Unit ${hunt.unit}` : 'Unspecified location')
+        : (resultView === 'tag' ? hunt.tag : resultView === 'sex' ? hunt.sex : resultView === 'species' ? hunt.species : hunt.method) || 'Unspecified';
       if (!groups.has(label)) groups.set(label, []);
       groups.get(label).push(hunt);
     });
@@ -389,8 +398,9 @@ function SearchPage() {
 
           <div className="result-view-controls" aria-label="Result organization">
             <span>Organize results</span>
-            <button type="button" className={resultView === 'alpha' ? 'active' : ''} onClick={() => setResultView('alpha')}>A–Z</button>
-            <button type="button" className={resultView === 'location' ? 'active' : ''} onClick={() => setResultView('location')}>By location</button>
+            {[['alpha', 'A–Z'], ['date', 'Date'], ['location', 'Location'], ['tag', 'Tag'], ['sex', 'Sex'], ['species', 'Species'], ['weapon', 'Weapon']].map(([mode, label]) => (
+              <button key={mode} type="button" className={resultView === mode ? 'active' : ''} onClick={() => setResultView(mode)}>{label}</button>
+            ))}
           </div>
         </section>
 
