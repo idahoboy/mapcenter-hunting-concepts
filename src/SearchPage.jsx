@@ -29,6 +29,7 @@ import { filterOpportunities } from './opportunityFilters.js';
 import { fetchRegionLookup, REGION_NAMES } from './regionContext.js';
 import { createFallbackOpportunityPlan, interpretOpportunitySearch, resolveCatalogSearch } from './aiOpportunitySearch.js';
 import MatchExplanation from './MatchExplanation.jsx';
+import { buildUnitWhereClause, getCombinedExtent, getHuntMapUnits } from './huntMapSelection.js';
 import './search-page.css';
 import './location-summary.css';
 
@@ -234,20 +235,34 @@ function SearchPage() {
     setSelectedHunt(item.id);
     const layer = layerInstances.current.get('game-units');
     const view = mapRef.current?.view;
-    if (!layer || !view || !item.unit) {
-      setStatus(`${item.areaLabel} does not resolve to a single game management unit.`);
+    const mapUnits = getHuntMapUnits(item);
+    if (!layer || !view || !mapUnits.length) {
+      setStatus(`${item.areaLabel} does not resolve to a mapped game management unit.`);
       return;
     }
     try {
-      const mapUnit = item.unit;
-      const response = await layer.queryFeatures({ where: `NAME = '${mapUnit}'`, outFields: ['NAME', 'Elk_Zone'], returnGeometry: true });
-      const feature = response.features[0];
-      if (!feature) return;
+      setManualOverrides((current) => ({ ...current, 'game-units': true }));
+      layer.visible = true;
+      const response = await layer.queryFeatures({
+        where: buildUnitWhereClause(mapUnits),
+        outFields: ['NAME', 'Elk_Zone'],
+        returnGeometry: true,
+      });
+      if (!response.features.length) throw new Error('No matching GMU boundaries');
       highlightHandle.current?.remove();
       const layerView = await view.whenLayerView(layer);
-      highlightHandle.current = layerView.highlight(feature);
-      await view.goTo(feature.geometry.extent.expand(1.7), { duration: 500 });
-      setStatus(`Map centered on Game Management Unit ${mapUnit}.`);
+      highlightHandle.current = layerView.highlight(response.features);
+      const extent = getCombinedExtent(response.features);
+      if (extent) {
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        await view.goTo(extent.expand(mapUnits.length > 1 ? 1.25 : 1.7), {
+          duration: reducedMotion ? 0 : 500,
+        });
+      }
+      const unitLabel = mapUnits.length === 1
+        ? `Game Management Unit ${mapUnits[0]}`
+        : `Game Management Units ${mapUnits.join(', ')}`;
+      setStatus(`${item.tag} selected and map centered on ${unitLabel}.`);
     } catch {
       setStatus(`${item.areaLabel} selected. Map focus is temporarily unavailable.`);
     }
@@ -303,6 +318,7 @@ function SearchPage() {
               <article className={selectedHunt === item.id ? 'opportunity-card selected' : 'opportunity-card'} key={item.id}>
                 <button className="card-hit-area" onClick={() => focusUnit(item)} aria-label={`Show ${item.tag}, ${item.areaLabel}, on map`} />
                 <div className="unit-visual" style={{ '--unit-accent': item.kind === 'Controlled hunt' ? '#336f53' : '#536f3b' }}>
+                  {selectedHunt === item.id && <b><MapPin size={12} />Selected on map</b>}
                   <span>{item.unit ? 'GMU context' : 'Hunt area'}</span><strong className={(item.unit ?? 'IDFG').length > 3 ? 'long-unit' : ''}>{item.unit ?? 'IDFG'}</strong><small>Hunt {item.id}</small>
                 </div>
                 <div className="unit-details">
