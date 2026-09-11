@@ -124,7 +124,7 @@ function HuntDetailPage({ huntId }) {
                 <arcgis-map basemap="topo-vector" center="-114.52,45.5" zoom="6" onarcgisViewReadyChange={loadBoundary}><arcgis-zoom slot="top-left" /><arcgis-locate slot="top-left" /><arcgis-scale-bar slot="bottom-left" unit="dual" /></arcgis-map>
                 <span className="detail-map-label"><Crosshair size={15} />{hunt.unit ? `GMU ${hunt.unit} context` : 'Statewide context'}</span>
               </div>
-              <div className="restriction-callout"><Database size={18} /><div><strong>Boundary join is intentionally conservative</strong><p>API 1.1 identifies the hunt area but does not expose the Hunt Area GIS feature ID. The map shows a single inferred GMU when available; use the official record for the legal hunt boundary.</p></div></div>
+              <div className="restriction-callout"><Database size={18} /><div><strong>Boundary join is intentionally conservative</strong><p>API 1.1 identifies the hunt area by name, but its current public list response does not return the <code>areaid</code> used to join the official Hunt Area GIS feature. The map shows inferred GMU context when available; use the official record for the legal hunt boundary.</p></div></div>
             </section>
 
             <section className="detail-section">
