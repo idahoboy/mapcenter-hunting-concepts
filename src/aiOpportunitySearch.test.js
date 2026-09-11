@@ -57,6 +57,12 @@ describe('AI opportunity search plans', () => {
     });
   });
 
+  it('infers the next upcoming year for a month without an explicit year', () => {
+    expect(inferDateRange('white-tailed deer hunting in november', new Date('2026-09-10T12:00:00Z'))).toEqual({
+      start: '2026-11-01', end: '2026-11-30',
+    });
+  });
+
   it('drops an AI keyword that cannot occur in the authoritative catalog', () => {
     const catalog = [{ tag: 'Elk A Tag', areaLabel: 'Units 10 and 12', method: 'Archery' }];
     expect(resolveCatalogSearch('archery elk in Clearwater', catalog)).toBe('');

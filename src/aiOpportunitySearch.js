@@ -19,13 +19,14 @@ const normalizeDateRange = (dateRange) => {
   return { start, end };
 };
 
-export const inferDateRange = (query) => {
+export const inferDateRange = (query, now = new Date()) => {
   const match = String(query ?? '').toLowerCase().match(
-    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s*,?\s*(20\d{2})\b/,
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december)(?:\s*,?\s*(20\d{2}))?\b/,
   );
   if (!match) return null;
-  const year = Number(match[2]);
   const month = monthNumbers.get(match[1]);
+  const requestedYear = match[2] ? Number(match[2]) : now.getFullYear();
+  const year = !match[2] && month < now.getMonth() + 1 ? requestedYear + 1 : requestedYear;
   const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const pad = (value) => String(value).padStart(2, '0');
   return { start: `${year}-${pad(month)}-01`, end: `${year}-${pad(month)}-${pad(lastDay)}` };
