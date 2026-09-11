@@ -33,6 +33,15 @@ describe('opportunity multi-select filters', () => {
     expect(rows.map((hunt) => hunt.id)).toEqual(['1', '3']);
   });
 
+  it('matches a requested GMU exactly instead of matching numeric prefixes', () => {
+    const rows = filterOpportunities([
+      { ...hunts[0], unit: '1' },
+      { ...hunts[0], id: '10', unit: '10' },
+      { ...hunts[0], id: '10A', unit: '10A' },
+    ], { filters: emptyFilters, search: 'Unit 1' });
+    expect(rows.map((hunt) => hunt.unit)).toEqual(['1']);
+  });
+
   it('matches weapon filters against the API legal method field', () => {
     const rows = filterOpportunities(hunts, {
       filters: { ...emptyFilters, season: ['Archery'] },

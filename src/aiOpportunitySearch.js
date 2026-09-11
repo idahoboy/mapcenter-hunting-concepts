@@ -79,6 +79,10 @@ export const normalizeOpportunityPlan = (plan, { filterOptions, layers }) => {
 export const resolveCatalogSearch = (search, catalog) => {
   const term = String(search ?? '').trim().toLowerCase();
   if (!term) return '';
+  const unitQuery = term.match(/^(?:unit|gmu)\s*(\d{1,2}[a-z]?)$/i)?.[1]?.toUpperCase() ?? null;
+  if (unitQuery) {
+    return catalog.some((hunt) => String(hunt.unit ?? '').toUpperCase() === unitQuery) ? `Unit ${unitQuery}` : '';
+  }
   const fields = ['id', 'tag', 'areaLabel', 'tagArea', 'species', 'season', 'method'];
   return catalog.some((hunt) => fields.some((field) =>
     String(hunt[field] ?? '').toLowerCase().includes(term))) ? search.trim() : '';

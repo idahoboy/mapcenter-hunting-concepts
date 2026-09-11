@@ -24,9 +24,12 @@ export const matchesDateRange = (hunt, dateRange) => {
 
 export const filterOpportunities = (hunts, { search = '', filters, regionLookup = new Map(), dateRange = null }) => {
   const query = search.trim().toLowerCase();
+  const unitQuery = query.match(/^(?:unit|gmu)\s*(\d{1,2}[a-z]?)$/i)?.[1]?.toUpperCase() ?? null;
   return hunts.filter((hunt) => {
     if (!isActiveBigGame(hunt.species)) return false;
-    const matchesQuery = !query || [
+    const matchesQuery = !query || (unitQuery
+      ? String(hunt.unit ?? '').toUpperCase() === unitQuery
+      : [
       hunt.id,
       hunt.tag,
       hunt.areaLabel,
@@ -34,7 +37,7 @@ export const filterOpportunities = (hunts, { search = '', filters, regionLookup 
       hunt.species,
       hunt.season,
       hunt.method,
-    ].some((value) => includesText(value, query));
+      ].some((value) => includesText(value, query)));
     const matchesSpecies = !filters.species.length || filters.species.some((option) => matchesSpeciesOption(hunt.species, option));
     const matchesHuntType = !filters.huntType.length || filters.huntType.includes(hunt.kind);
     const matchesSeason = !filters.season.length || filters.season.some((season) =>

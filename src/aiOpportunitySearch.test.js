@@ -68,4 +68,9 @@ describe('AI opportunity search plans', () => {
     expect(resolveCatalogSearch('archery elk in Clearwater', catalog)).toBe('');
     expect(resolveCatalogSearch('Units 10', catalog)).toBe('Units 10');
   });
+
+  it('resolves GMU searches against an exact unit value', () => {
+    expect(resolveCatalogSearch('Unit 1', [{ unit: '10' }, { unit: '1' }])).toBe('Unit 1');
+    expect(resolveCatalogSearch('Unit 1', [{ unit: '10' }])).toBe('');
+  });
 });
