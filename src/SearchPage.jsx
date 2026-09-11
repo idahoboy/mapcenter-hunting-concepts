@@ -27,7 +27,7 @@ import LocationSummaryPopup from './LocationSummaryPopup.jsx';
 import { useMapIdentify } from './useMapIdentify.js';
 import { useHuntPlan } from './useHuntPlan.js';
 import { fetchCatalog } from './huntPlannerApi.js';
-import { filterOpportunities } from './opportunityFilters.js';
+import { filterOpportunities, filterOverlappingOpportunities } from './opportunityFilters.js';
 import { fetchRegionLookup, REGION_NAMES } from './regionContext.js';
 import { createFallbackOpportunityPlan, interpretOpportunitySearch, resolveCatalogSearch } from './aiOpportunitySearch.js';
 import MatchExplanation from './MatchExplanation.jsx';
@@ -188,9 +188,13 @@ function SearchPage() {
     return () => { active = false; };
   }, []);
 
+  const overlapQuery = /\b(overlap|overlapping|same location|same area)\b/i.test(query);
   const filteredOpportunities = useMemo(
-    () => filterOpportunities(catalog, { search: submittedQuery, filters, regionLookup, dateRange: aiPlan?.dateRange }),
-    [catalog, submittedQuery, filters, regionLookup, aiPlan],
+    () => {
+      const rows = filterOpportunities(catalog, { search: submittedQuery, filters, regionLookup, dateRange: aiPlan?.dateRange });
+      return overlapQuery ? filterOverlappingOpportunities(rows) : rows;
+    },
+    [catalog, submittedQuery, filters, regionLookup, aiPlan, overlapQuery],
   );
   const resultTotal = filteredOpportunities.length;
   const sortedOpportunities = useMemo(() => sortOpportunities(filteredOpportunities, resultView), [filteredOpportunities, resultView]);
@@ -417,6 +421,11 @@ function SearchPage() {
               : <><strong>Live catalog, AI-ready.</strong> Describe a hunt in plain language or use the filters. Hunt facts come directly from Hunt Planner API 1.1.</>}</p>
             <small>{aiPlan ? 'OpenAI + IDFG' : 'Source: IDFG'}</small>
           </aside>
+
+          {overlapQuery && <div className="overlap-note" role="status">
+            <strong>Cross-species overlap mode</strong>
+            <span>Showing hunt areas where different species have overlapping API season dates. Results share an area or GMU and a live date intersection.</span>
+          </div>}
 
           <div className="opportunity-list">
             {groupedOpportunities.map((group) => <div className="opportunity-group" key={group.label || 'all'}>

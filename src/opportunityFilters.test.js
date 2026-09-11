@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterOpportunities } from './opportunityFilters.js';
+import { filterOpportunities, filterOverlappingOpportunities } from './opportunityFilters.js';
 
 const hunts = [
   { id: '1', tag: 'A', areaLabel: 'Unit 12', tagArea: '', species: 'Elk', season: 'General Archery', method: 'Archery', kind: 'General season', unit: '12' },
@@ -54,6 +54,16 @@ describe('opportunity multi-select filters', () => {
       filters: { ...emptyFilters, species: ['Deer'], sex: ['Antlered'] },
     });
     expect(rows.map((hunt) => hunt.id)).toEqual(['6']);
+  });
+
+  it('keeps only records participating in a cross-species date overlap at one area', () => {
+    const rows = filterOverlappingOpportunities([
+      { ...hunts[0], id: 'elk-a', species: 'Elk', areaId: 10, open: '10/1/26', close: '10/31/26' },
+      { ...hunts[0], id: 'deer-a', species: 'White-tailed Deer', areaId: 10, open: '10/15/26', close: '11/15/26' },
+      { ...hunts[0], id: 'elk-b', species: 'Elk', areaId: 11, open: '10/1/26', close: '10/10/26' },
+      { ...hunts[0], id: 'deer-b', species: 'White-tailed Deer', areaId: 11, open: '11/1/26', close: '11/10/26' },
+    ]);
+    expect(rows.map((hunt) => hunt.id)).toEqual(['elk-a', 'deer-a']);
   });
 
   it('matches only records whose API season interval overlaps the requested dates', () => {
