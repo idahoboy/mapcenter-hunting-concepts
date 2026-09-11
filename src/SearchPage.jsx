@@ -28,6 +28,7 @@ import { fetchCatalog } from './huntPlannerApi.js';
 import { filterOpportunities } from './opportunityFilters.js';
 import { fetchRegionLookup, REGION_NAMES } from './regionContext.js';
 import { createFallbackOpportunityPlan, interpretOpportunitySearch, resolveCatalogSearch } from './aiOpportunitySearch.js';
+import MatchExplanation from './MatchExplanation.jsx';
 import './search-page.css';
 import './location-summary.css';
 
@@ -308,6 +309,7 @@ function SearchPage() {
                   <div className="unit-title-row"><div><span>{item.kind} · {item.areaLabel}</span><h2>{item.tag}</h2></div></div>
                   <div className="unit-facts"><span><CalendarDays size={15} />{item.dates}</span><span><Target size={15} />{item.method}</span><span><PawPrint size={15} />{item.sex}</span></div>
                   <div className="unit-tags"><span>{item.species}</span><span>{item.season}</span><span>{item.tagAvailability}</span>{item.unit && regionLookup.get(item.unit)?.map((region) => <span key={region}>{region}</span>)}</div>
+                  <MatchExplanation hunt={item} plan={aiPlan} regionLookup={regionLookup} layers={allLayers} />
                   <div className="unit-footer"><span><Database size={14} />Hunt Planner API {item.apiVersion}</span><div className="unit-actions"><button className={isSaved(item.id) ? 'save-result saved' : 'save-result'} onClick={() => toggleSavedHunt(item.id)} aria-pressed={isSaved(item.id)}>{isSaved(item.id) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}{isSaved(item.id) ? 'Saved' : 'Save'}</button><a href={`/hunt/${item.id}`} aria-label={`View details for ${item.tag}`}>View details <ChevronRight size={15} /></a></div></div>
                 </div>
               </article>

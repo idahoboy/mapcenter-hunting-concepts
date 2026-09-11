@@ -357,6 +357,21 @@
 .unit-facts span { display: inline-flex; align-items: center; gap: .25rem; }
 .unit-tags { display: flex; flex-wrap: wrap; gap: .28rem; margin-top: .55rem; }
 .unit-tags span { padding: .22rem .38rem; border-radius: .32rem; color: #43554b; background: #edf1ed; font-size: .53rem; font-weight: 740; }
+.match-explanation { position: relative; z-index: 3; margin-top: .48rem; border: 1px solid #dbe4dd; border-radius: .5rem; background: #f7faf7; }
+.match-explanation > summary { display: flex; justify-content: space-between; align-items: center; min-height: 32px; padding: .34rem .48rem; color: #315b46; list-style: none; cursor: pointer; font-size: .55rem; font-weight: 850; }
+.match-explanation > summary::-webkit-details-marker { display: none; }
+.match-explanation > summary span { display: inline-flex; align-items: center; gap: .28rem; }
+.match-explanation[open] > summary { border-bottom: 1px solid #dfe6e1; }
+.match-explanation[open] > summary > svg { transform: rotate(180deg); }
+.match-explanation-body { display: grid; gap: .55rem; padding: .5rem; }
+.match-criteria > strong, .match-context > strong { display: flex; align-items: center; gap: .25rem; margin-bottom: .3rem; color: #5c6962; font-size: .48rem; letter-spacing: .08em; text-transform: uppercase; }
+.match-criteria > div { display: grid; grid-template-columns: auto 1fr; gap: .35rem; align-items: start; padding: .2rem 0; color: #40534a; font-size: .54rem; }
+.match-criteria > div > svg { margin-top: 1px; color: #2e7753; }
+.match-criteria b { color: #244536; }
+.match-criteria small { display: block; margin-top: .08rem; color: #7b8680; font-size: .46rem; }
+.match-context { padding: .42rem; border-radius: .38rem; background: #eef3ef; }
+.match-context p { margin: 0; color: #3c5146; font-size: .51rem; font-weight: 720; line-height: 1.45; }
+.match-context > small { display: block; margin-top: .25rem; color: #6f7b74; font-size: .45rem; line-height: 1.35; }
 .unit-footer { display: flex; justify-content: space-between; gap: .5rem; margin-top: .55rem; padding-top: .48rem; border-top: 1px solid #edf0ed; color: #7b8580; font-size: .52rem; }
 .unit-footer span { display: inline-flex; align-items: center; gap: .2rem; }
 .unit-footer a,
