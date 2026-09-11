@@ -32,6 +32,7 @@ import { fetchRegionLookup, REGION_NAMES } from './regionContext.js';
 import { createFallbackOpportunityPlan, interpretOpportunitySearch, resolveCatalogSearch } from './aiOpportunitySearch.js';
 import MatchExplanation from './MatchExplanation.jsx';
 import { buildUnitWhereClause, getCombinedExtent, getHuntMapUnits } from './huntMapSelection.js';
+import { createProximityBuffer, findIntersectingOpportunityIds } from './spatialOpportunityFilter.js';
 import './search-page.css';
 import './location-summary.css';
 
@@ -98,6 +99,7 @@ function SearchPage() {
   const highlightHandle = useRef(null);
   const selectionGraphics = useRef([]);
   const searchLocationGraphic = useRef(null);
+  const proximityGraphic = useRef(null);
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
@@ -113,6 +115,8 @@ function SearchPage() {
   const [manualOverrides, setManualOverrides] = useState({});
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [aiPlan, setAiPlan] = useState(null);
+  const [spatialMatchIds, setSpatialMatchIds] = useState(null);
+  const [proximityState, setProximityState] = useState('idle');
   const [status, setStatus] = useState('Search assistant ready.');
   const { summary: locationSummary, attach: attachIdentify, close: closeIdentify, zoomTo: zoomToIdentify } = useMapIdentify(layerInstances, allLayers);
   const { isSaved, toggle: toggleSavedHunt } = useHuntPlan();
@@ -131,6 +135,7 @@ function SearchPage() {
     const view = mapRef.current?.view;
     if (view && selectionGraphics.current.length) view.graphics.removeMany(selectionGraphics.current);
     if (view && searchLocationGraphic.current) view.graphics.remove(searchLocationGraphic.current);
+    if (view && proximityGraphic.current) view.graphics.remove(proximityGraphic.current);
   }, []);
 
   useEffect(() => {
@@ -189,13 +194,57 @@ function SearchPage() {
   }, []);
 
   const overlapQuery = /\b(overlap|overlapping|same location|same area)\b/i.test(query);
-  const filteredOpportunities = useMemo(
+  const attributeFilteredOpportunities = useMemo(
     () => {
       const rows = filterOpportunities(catalog, { search: submittedQuery, filters, regionLookup, dateRange: aiPlan?.dateRange });
       return overlapQuery ? filterOverlappingOpportunities(rows) : rows;
     },
     [catalog, submittedQuery, filters, regionLookup, aiPlan, overlapQuery],
   );
+  useEffect(() => {
+    let active = true;
+    const view = mapRef.current?.view;
+    if (view && proximityGraphic.current) {
+      view.graphics.remove(proximityGraphic.current);
+      proximityGraphic.current = null;
+    }
+    if (!aiPlan?.location || !aiPlan?.proximity) {
+      setSpatialMatchIds(null);
+      setProximityState('idle');
+      return () => { active = false; };
+    }
+    setProximityState('loading');
+    setSpatialMatchIds(null);
+    setStatus(`Applying a ${aiPlan.proximity.radiusMiles}-mile GIS buffer around ${aiPlan.location.label}.`);
+    createProximityBuffer(aiPlan.location, aiPlan.proximity.radiusMiles)
+      .then(async (buffer) => {
+        if (!buffer || !active) return;
+        if (view) {
+          proximityGraphic.current = new Graphic({
+            geometry: buffer,
+            symbol: { type: 'simple-fill', color: [196, 84, 38, 0.12], outline: { color: [156, 72, 34, 0.9], width: 2 } },
+            popupTemplate: null,
+          });
+          view.graphics.add(proximityGraphic.current);
+          view.goTo(buffer.extent.expand(1.08), { duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 550 }).catch(() => {});
+        }
+        const ids = await findIntersectingOpportunityIds(attributeFilteredOpportunities, buffer);
+        if (!active) return;
+        setSpatialMatchIds(ids);
+        setProximityState('ready');
+        setStatus(`${ids.size} opportunities intersect the ${aiPlan.proximity.radiusMiles}-mile planning buffer.`);
+      })
+      .catch(() => {
+        if (!active) return;
+        setSpatialMatchIds(new Set());
+        setProximityState('error');
+        setStatus('The GIS proximity filter could not be completed.');
+      });
+    return () => { active = false; };
+  }, [aiPlan, attributeFilteredOpportunities]);
+  const filteredOpportunities = useMemo(() => spatialMatchIds
+    ? attributeFilteredOpportunities.filter((hunt) => spatialMatchIds.has(hunt.id))
+    : attributeFilteredOpportunities, [attributeFilteredOpportunities, spatialMatchIds]);
   const resultTotal = filteredOpportunities.length;
   const sortedOpportunities = useMemo(() => sortOpportunities(filteredOpportunities, resultView), [filteredOpportunities, resultView]);
   const opportunities = sortedOpportunities.slice(0, config.dataProviders.huntPlanner.pageSize);
@@ -425,6 +474,11 @@ function SearchPage() {
           {overlapQuery && <div className="overlap-note" role="status">
             <strong>Cross-species overlap mode</strong>
             <span>Showing hunt areas where different species have overlapping API season dates. Results share an area or GMU and a live date intersection.</span>
+          </div>}
+
+          {aiPlan?.proximity && <div className="proximity-note" role="status">
+            <strong>{proximityState === 'loading' ? 'Checking nearby hunt geometry…' : `${aiPlan.proximity.radiusMiles}-mile planning buffer`}</strong>
+            <span>{aiPlan.proximity.hours} {aiPlan.proximity.hours === 1 ? 'hour' : 'hours'} × {aiPlan.proximity.radiusMiles / aiPlan.proximity.hours} miles. Any overlap between the buffer and the returned hunt-area or GMU polygon qualifies; this is not estimated drive time.</span>
           </div>}
 
           <div className="opportunity-list">

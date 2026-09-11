@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createFallbackOpportunityPlan, inferDateRange, normalizeOpportunityPlan, resolveCatalogSearch } from './aiOpportunitySearch.js';
+import { createFallbackOpportunityPlan, inferDateRange, inferProximity, normalizeOpportunityPlan, resolveCatalogSearch } from './aiOpportunitySearch.js';
 
 const filterOptions = {
   species: { options: ['Elk', 'Deer'] },
@@ -60,6 +60,14 @@ describe('AI opportunity search plans', () => {
   it('infers the next upcoming year for a month without an explicit year', () => {
     expect(inferDateRange('white-tailed deer hunting in november', new Date('2026-09-10T12:00:00Z'))).toEqual({
       start: '2026-11-01', end: '2026-11-30',
+    });
+  });
+
+  it('converts requested hours to the configured 50-mile buffer rule', () => {
+    expect(inferProximity('elk hunts within 2-hours of Boise')).toEqual({
+      hours: 2,
+      radiusMiles: 100,
+      rule: '50 miles per hour; any polygon overlap qualifies',
     });
   });
 

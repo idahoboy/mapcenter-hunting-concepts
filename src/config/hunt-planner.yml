@@ -6,6 +6,11 @@ app:
   zoom: 6
   disclaimer: Boundaries are for planning only. Verify current seasons, rules, closures, and legal descriptions before hunting.
 
+spatialSearch:
+  hourToMiles: 50
+  proximityRelation: intersects
+  disclaimer: Planning buffer only; not estimated travel or drive time.
+
 dataProviders:
   opportunitySearch:
     label: AI opportunity search

@@ -19,6 +19,21 @@ const normalizeDateRange = (dateRange) => {
   return { start, end };
 };
 
+const normalizeProximity = (proximity) => {
+  const hours = Number(proximity?.hours);
+  const radiusMiles = Number(proximity?.radiusMiles);
+  if (!Number.isFinite(hours) || hours <= 0 || !Number.isFinite(radiusMiles) || radiusMiles <= 0) return null;
+  return { hours, radiusMiles, rule: '50 miles per hour; any polygon overlap qualifies' };
+};
+
+export const inferProximity = (query) => {
+  const match = String(query ?? '').match(/\bwithin\s+(\d+(?:\.\d+)?)\s*[- ]?\s*hours?\b/i);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const milesPerHour = Number(config.spatialSearch.hourToMiles);
+  return { hours, radiusMiles: hours * milesPerHour, rule: `${milesPerHour} miles per hour; any polygon overlap qualifies` };
+};
+
 export const inferDateRange = (query, now = new Date()) => {
   const match = String(query ?? '').toLowerCase().match(
     /\b(january|february|march|april|may|june|july|august|september|october|november|december)(?:\s*,?\s*(20\d{2}))?\b/,
@@ -72,6 +87,7 @@ export const normalizeOpportunityPlan = (plan, { filterOptions, layers }) => {
       ? plan.focusUnit
       : null,
     dateRange: normalizeDateRange(plan?.dateRange),
+    proximity: normalizeProximity(plan?.proximity),
     location: normalizeLocation(plan?.location),
   };
 };
@@ -120,6 +136,7 @@ export const createFallbackOpportunityPlan = ({ query, currentFilters, filterOpt
     layerIds: [...selected].filter((id) => allowedLayers.has(id)),
     focusUnit: unit,
     dateRange: inferDateRange(query),
+    proximity: inferProximity(query),
     location: null,
   }, { filterOptions, layers });
 };
@@ -147,5 +164,9 @@ export async function interpretOpportunitySearch({ query, currentFilters, filter
   }
 
   const plan = normalizeOpportunityPlan(await response.json(), { filterOptions, layers });
-  return plan.dateRange ? plan : { ...plan, dateRange: inferDateRange(query) };
+  return {
+    ...plan,
+    dateRange: plan.dateRange ?? inferDateRange(query),
+    proximity: plan.proximity ?? inferProximity(query),
+  };
 }
