@@ -11,12 +11,16 @@ Four connected design options are available:
 
 Opportunity filters support multiple simultaneous selections. Region filtering and the toggleable **IDFG administrative regions** layer are derived at runtime from IDFG's live region and GMU services; no region GeoJSON is bundled with the app.
 
+The `/search` command bar also supports AI-assisted natural-language search. A same-origin `/api/opportunity-search` request is proxied during local development to the companion Drupal endpoint at `https://drupal-ai-app.ddev.site/api/opportunity-search`. Drupal keeps `OPENAI_API_KEY` server-side and uses the OpenAI Responses API to return a strict, closed search plan: existing filter values, configured layer IDs, an optional catalog keyword, and an optional GMU. React validates that plan, then applies it to live Hunt Planner API 1.1 records and configured ArcGIS layers. The model never supplies hunt facts or arbitrary service URLs.
+
 ## Run locally
 
 ```bash
 npm install
 npm run dev
 ```
+
+For AI search, start `/Users/benjaminstuder/Sites/vibe/drupal-ai-app` with DDEV first. Set `IDFG_AI_DRUPAL_URL` only when the Drupal broker runs at a different origin.
 
 ## Production build
 

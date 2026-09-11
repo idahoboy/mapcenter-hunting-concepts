@@ -7,6 +7,12 @@ app:
   disclaimer: Boundaries are for planning only. Verify current seasons, rules, closures, and legal descriptions before hunting.
 
 dataProviders:
+  opportunitySearch:
+    label: AI opportunity search
+    baseUrl: /api/opportunity-search
+    status: active
+    broker: Drupal
+    modelPurpose: Translate natural language into validated filters and GIS layer selections
   huntPlanner:
     label: Hunt Planner API
     version: '1.1'

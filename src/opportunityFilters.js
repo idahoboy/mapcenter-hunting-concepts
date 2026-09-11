@@ -1,4 +1,4 @@
-const includesText = (value, query) => String(value ?? '').toLowerCase().includes(query);
+const includesText = (value, query) => String(value ?? '').toLowerCase().includes(String(query ?? '').toLowerCase());
 
 const isActiveBigGame = (species) => !['Mountain Lion', 'Turkey'].includes(species);
 
@@ -23,7 +23,8 @@ export const filterOpportunities = (hunts, { search = '', filters, regionLookup 
     ].some((value) => includesText(value, query));
     const matchesSpecies = !filters.species.length || filters.species.some((option) => matchesSpeciesOption(hunt.species, option));
     const matchesHuntType = !filters.huntType.length || filters.huntType.includes(hunt.kind);
-    const matchesSeason = !filters.season.length || filters.season.some((season) => includesText(hunt.season, season));
+    const matchesSeason = !filters.season.length || filters.season.some((season) =>
+      includesText(hunt.season, season) || includesText(hunt.method, season));
     const huntRegions = hunt.unit ? regionLookup.get(hunt.unit) ?? [] : [];
     const matchesRegion = !filters.region.length || filters.region.some((region) => huntRegions.includes(region));
     return matchesQuery && matchesSpecies && matchesHuntType && matchesSeason && matchesRegion;

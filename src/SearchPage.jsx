@@ -27,6 +27,7 @@ import { useHuntPlan } from './useHuntPlan.js';
 import { fetchCatalog } from './huntPlannerApi.js';
 import { filterOpportunities } from './opportunityFilters.js';
 import { fetchRegionLookup, REGION_NAMES } from './regionContext.js';
+import { createFallbackOpportunityPlan, interpretOpportunitySearch, resolveCatalogSearch } from './aiOpportunitySearch.js';
 import './search-page.css';
 import './location-summary.css';
 
@@ -88,6 +89,7 @@ function SearchPage() {
   );
   const [manualOverrides, setManualOverrides] = useState({});
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [aiPlan, setAiPlan] = useState(null);
   const [status, setStatus] = useState('Search assistant ready.');
   const { summary: locationSummary, attach: attachIdentify, close: closeIdentify, zoomTo: zoomToIdentify } = useMapIdentify(layerInstances, allLayers);
   const { isSaved, toggle: toggleSavedHunt } = useHuntPlan();
@@ -163,16 +165,57 @@ function SearchPage() {
     setStatus(`${composedLayers.size} services selected from the current search.`);
   };
 
-  const optimizeMap = () => {
+  const optimizeMap = async () => {
+    const naturalLanguageQuery = query.trim();
     setIsOptimizing(true);
-    setManualOverrides({});
-    setSubmittedQuery(query.trim());
-    setStatus('Searching Hunt Planner API 1.1 and analyzing the service catalog.');
-    window.setTimeout(() => {
+    setStatus(naturalLanguageQuery
+      ? 'AI is translating your request into live-data filters and map services.'
+      : 'Searching Hunt Planner API 1.1 with the selected filters.');
+
+    if (!naturalLanguageQuery) {
+      setAiPlan(null);
+      setManualOverrides({});
+      setSubmittedQuery('');
       setIsOptimizing(false);
       setStackOpen(true);
-      setStatus(`${composedLayers.size} services selected. Layer reasoning is available on the map.`);
-    }, 650);
+      setStatus('Selected filters applied to Hunt Planner API 1.1 results.');
+      return;
+    }
+
+    try {
+      const plan = await interpretOpportunitySearch({
+        query: naturalLanguageQuery,
+        currentFilters: filters,
+        filterOptions,
+        layers: allLayers,
+      });
+      const appliedPlan = { ...plan, search: resolveCatalogSearch(plan.search, catalog) };
+      setFilters(appliedPlan.filters);
+      setSubmittedQuery(appliedPlan.search);
+      setAiPlan(appliedPlan);
+      setManualOverrides(Object.fromEntries(
+        allLayers.map((layer) => [layer.id, appliedPlan.layerIds.includes(layer.id)]),
+      ));
+      setStackOpen(true);
+      setStatus(`${appliedPlan.summary} Live Hunt Planner and GIS services are now applied.`);
+    } catch {
+      const fallback = createFallbackOpportunityPlan({
+        query: naturalLanguageQuery,
+        currentFilters: filters,
+        filterOptions,
+        layers: allLayers,
+      });
+      setFilters(fallback.filters);
+      setAiPlan(fallback);
+      setManualOverrides(Object.fromEntries(
+        allLayers.map((layer) => [layer.id, fallback.layerIds.includes(layer.id)]),
+      ));
+      setSubmittedQuery(fallback.search);
+      setStackOpen(true);
+      setStatus(fallback.summary);
+    } finally {
+      setIsOptimizing(false);
+    }
   };
 
   const updateFilter = (key, values) => {
@@ -220,8 +263,8 @@ function SearchPage() {
           <div className="ai-search-box">
             <span className="ai-search-icon" aria-hidden="true"><Sparkles size={21} /></span>
             <label>
-              <span>Search live hunts by tag, area, or name</span>
-              <input value={query} placeholder="Try 30A-1, bear, or Pioneer" onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && optimizeMap()} />
+              <span>Describe the opportunity you want</span>
+              <input value={query} placeholder="Try archery elk in Clearwater with public access" onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && optimizeMap()} />
             </label>
             <button onClick={optimizeMap} disabled={isOptimizing}>
               <WandSparkles size={18} />{isOptimizing ? 'Searching…' : 'Search & map'}
@@ -248,8 +291,10 @@ function SearchPage() {
 
           <aside className="assistant-note">
             <span><Sparkles size={17} /></span>
-            <p><strong>Live catalog, map-assisted.</strong> Hunt facts come directly from Hunt Planner API 1.1; region context is derived from live IDFG administrative boundaries.</p>
-            <small>Source: IDFG</small>
+            <p>{aiPlan
+              ? <><strong>{aiPlan.summary}</strong> Results come from Hunt Planner API 1.1; OpenAI selected only validated filters and configured GIS services.</>
+              : <><strong>Live catalog, AI-ready.</strong> Describe a hunt in plain language or use the filters. Hunt facts come directly from Hunt Planner API 1.1.</>}</p>
+            <small>{aiPlan ? 'OpenAI + IDFG' : 'Source: IDFG'}</small>
           </aside>
 
           <div className="opportunity-list">
@@ -285,7 +330,7 @@ function SearchPage() {
               {stackOpen ? <X size={17} /> : <Layers3 size={18} />}
             </button>
             {stackOpen && <div className="smart-stack-body">
-              <p>Selected from the service catalog using your words and filters—not a preset layer pack.</p>
+              <p>{aiPlan ? 'OpenAI interpreted your words; every selection is constrained to the configured service catalog.' : 'Selected from the service catalog using your words and filters—not a preset layer pack.'}</p>
               {rankedLayers.slice(0, 7).map((layer) => (
                 <label className="smart-layer" key={layer.id}>
                   <span><strong>{layer.label}</strong><small>{layer.reason}</small></span>
