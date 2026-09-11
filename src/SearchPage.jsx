@@ -82,6 +82,7 @@ function SearchPage() {
   const huntAreaLayer = useRef(null);
   const highlightHandle = useRef(null);
   const selectionGraphics = useRef([]);
+  const searchLocationGraphic = useRef(null);
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
@@ -104,7 +105,35 @@ function SearchPage() {
     highlightHandle.current?.remove();
     const view = mapRef.current?.view;
     if (view && selectionGraphics.current.length) view.graphics.removeMany(selectionGraphics.current);
+    if (view && searchLocationGraphic.current) view.graphics.remove(searchLocationGraphic.current);
   }, []);
+
+  useEffect(() => {
+    const view = mapRef.current?.view;
+    if (!view) return;
+    if (searchLocationGraphic.current) {
+      view.graphics.remove(searchLocationGraphic.current);
+      searchLocationGraphic.current = null;
+    }
+    if (!aiPlan?.location) return;
+    const { longitude, latitude, label } = aiPlan.location;
+    const graphic = new Graphic({
+      geometry: { type: 'point', longitude, latitude, spatialReference: { wkid: 4326 } },
+      attributes: { label, role: 'search-location' },
+      symbol: {
+        type: 'simple-marker',
+        style: 'diamond',
+        color: [255, 255, 255, 1],
+        size: 15,
+        outline: { color: [116, 43, 20, 1], width: 3 },
+      },
+      popupTemplate: null,
+    });
+    searchLocationGraphic.current = graphic;
+    view.graphics.add(graphic);
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    view.goTo({ target: graphic, zoom: 9 }, { duration: reducedMotion ? 0 : 550 }).catch(() => {});
+  }, [aiPlan]);
 
   useEffect(() => {
     let active = true;
@@ -135,8 +164,8 @@ function SearchPage() {
   }, []);
 
   const filteredOpportunities = useMemo(
-    () => filterOpportunities(catalog, { search: submittedQuery, filters, regionLookup }),
-    [catalog, submittedQuery, filters, regionLookup],
+    () => filterOpportunities(catalog, { search: submittedQuery, filters, regionLookup, dateRange: aiPlan?.dateRange }),
+    [catalog, submittedQuery, filters, regionLookup, aiPlan],
   );
   const resultTotal = filteredOpportunities.length;
   const opportunities = filteredOpportunities.slice(0, config.dataProviders.huntPlanner.pageSize);
@@ -209,7 +238,7 @@ function SearchPage() {
         allLayers.map((layer) => [layer.id, appliedPlan.layerIds.includes(layer.id)]),
       ));
       setStackOpen(true);
-      setStatus(`${appliedPlan.summary} Live Hunt Planner and GIS services are now applied.`);
+      setStatus(`${appliedPlan.summary} Live Hunt Planner and GIS services are now applied.${appliedPlan.location ? ` Place resolved as ${appliedPlan.location.label}.` : ''}`);
     } catch {
       const fallback = createFallbackOpportunityPlan({
         query: naturalLanguageQuery,
@@ -339,7 +368,7 @@ function SearchPage() {
           <aside className="assistant-note">
             <span><Sparkles size={17} /></span>
             <p>{aiPlan
-              ? <><strong>{aiPlan.summary}</strong> Results come from Hunt Planner API 1.1; OpenAI selected only validated filters and configured GIS services.</>
+              ? <><strong>{aiPlan.summary}</strong> Results come from Hunt Planner API 1.1; OpenAI selected only validated filters and configured GIS services.{aiPlan.dateRange ? ` Date overlap applied for ${aiPlan.dateRange.start} through ${aiPlan.dateRange.end}.` : ''}{aiPlan.location ? ` Map location verified as ${aiPlan.location.label}.` : ''}</>
               : <><strong>Live catalog, AI-ready.</strong> Describe a hunt in plain language or use the filters. Hunt facts come directly from Hunt Planner API 1.1.</>}</p>
             <small>{aiPlan ? 'OpenAI + IDFG' : 'Source: IDFG'}</small>
           </aside>

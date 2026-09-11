@@ -7,6 +7,50 @@ const keepAllowed = (values, allowed) => {
   return Array.isArray(values) ? values.filter((value) => allowedValues.has(value)) : [];
 };
 
+const monthNumbers = new Map([
+  ['january', 1], ['february', 2], ['march', 3], ['april', 4], ['may', 5], ['june', 6],
+  ['july', 7], ['august', 8], ['september', 9], ['october', 10], ['november', 11], ['december', 12],
+]);
+
+const normalizeDateRange = (dateRange) => {
+  const start = String(dateRange?.start ?? '');
+  const end = String(dateRange?.end ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || start > end) return null;
+  return { start, end };
+};
+
+export const inferDateRange = (query) => {
+  const match = String(query ?? '').toLowerCase().match(
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s*,?\s*(20\d{2})\b/,
+  );
+  if (!match) return null;
+  const year = Number(match[2]);
+  const month = monthNumbers.get(match[1]);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const pad = (value) => String(value).padStart(2, '0');
+  return { start: `${year}-${pad(month)}-01`, end: `${year}-${pad(month)}-${pad(lastDay)}` };
+};
+
+const normalizeLocation = (location) => {
+  const longitude = Number(location?.longitude);
+  const latitude = Number(location?.latitude);
+  if (!Number.isFinite(longitude) || !Number.isFinite(latitude)
+    || longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90) return null;
+  return {
+    query: String(location.query ?? '').trim(),
+    label: String(location.label ?? location.query ?? 'Resolved place').trim(),
+    longitude,
+    latitude,
+    state: String(location.state ?? '').trim(),
+    addressType: String(location.addressType ?? '').trim(),
+    score: Number(location.score) || 0,
+    stateExplicit: location.stateExplicit === true,
+    source: location.source === 'ArcGIS World Geocoding Service'
+      ? location.source
+      : 'Verified geocoder',
+  };
+};
+
 export const normalizeOpportunityPlan = (plan, { filterOptions, layers }) => {
   const layerIds = new Set(layers.map((layer) => layer.id));
   return {
@@ -26,6 +70,8 @@ export const normalizeOpportunityPlan = (plan, { filterOptions, layers }) => {
     focusUnit: typeof plan?.focusUnit === 'string' && /^[0-9]{1,2}[A-Z]?$/.test(plan.focusUnit)
       ? plan.focusUnit
       : null,
+    dateRange: normalizeDateRange(plan?.dateRange),
+    location: normalizeLocation(plan?.location),
   };
 };
 
@@ -68,6 +114,8 @@ export const createFallbackOpportunityPlan = ({ query, currentFilters, filterOpt
     filters,
     layerIds: [...selected].filter((id) => allowedLayers.has(id)),
     focusUnit: unit,
+    dateRange: inferDateRange(query),
+    location: null,
   }, { filterOptions, layers });
 };
 
@@ -93,5 +141,6 @@ export async function interpretOpportunitySearch({ query, currentFilters, filter
     throw new Error(problem.message || `AI search returned ${response.status}`);
   }
 
-  return normalizeOpportunityPlan(await response.json(), { filterOptions, layers });
+  const plan = normalizeOpportunityPlan(await response.json(), { filterOptions, layers });
+  return plan.dateRange ? plan : { ...plan, dateRange: inferDateRange(query) };
 }

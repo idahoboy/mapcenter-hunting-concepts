@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createFallbackOpportunityPlan, normalizeOpportunityPlan, resolveCatalogSearch } from './aiOpportunitySearch.js';
+import { createFallbackOpportunityPlan, inferDateRange, normalizeOpportunityPlan, resolveCatalogSearch } from './aiOpportunitySearch.js';
 
 const filterOptions = {
   species: { options: ['Elk', 'Deer'] },
@@ -22,12 +22,18 @@ describe('AI opportunity search plans', () => {
       },
       layerIds: ['game-units', 'access-yes', 'invented-layer'],
       focusUnit: '12',
+      location: {
+        query: 'Genesee', label: 'Genesee, ID, USA', longitude: -116.928251,
+        latitude: 46.549543, state: 'ID', addressType: 'Locality', score: 100,
+        stateExplicit: false, source: 'ArcGIS World Geocoding Service',
+      },
     }, { filterOptions, layers });
 
     expect(plan.filters.species).toEqual(['Elk']);
     expect(plan.filters.region).toEqual(['Clearwater Region']);
     expect(plan.layerIds).toEqual(['game-units', 'access-yes']);
     expect(plan.focusUnit).toBe('12');
+    expect(plan.location).toMatchObject({ label: 'Genesee, ID, USA', state: 'ID', stateExplicit: false });
   });
 
   it('keeps live service search useful when AI is unavailable', () => {
@@ -43,6 +49,12 @@ describe('AI opportunity search plans', () => {
     expect(plan.filters.season).toEqual(['Archery']);
     expect(plan.filters.region).toEqual(['Clearwater Region']);
     expect(plan.layerIds).toEqual(['game-units', 'access-yes']);
+  });
+
+  it('infers an inclusive month range when the AI service is unavailable', () => {
+    expect(inferDateRange('white-tailed deer options for December, 2026')).toEqual({
+      start: '2026-12-01', end: '2026-12-31',
+    });
   });
 
   it('drops an AI keyword that cannot occur in the authoritative catalog', () => {

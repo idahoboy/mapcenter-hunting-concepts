@@ -19,6 +19,15 @@ export function buildMatchEvidence(hunt, plan, regionLookup, layers) {
     criteria.push({ id: 'hunt-type', label: 'Hunt type', value: hunt.kind, source: 'Hunt Planner API 1.1' });
   }
 
+  if (plan.dateRange && hunt.open && hunt.close) {
+    criteria.push({
+      id: 'date-range',
+      label: 'Date overlap',
+      value: `${hunt.dates} overlaps ${plan.dateRange.start}–${plan.dateRange.end}`,
+      source: 'Hunt Planner API 1.1',
+    });
+  }
+
   const huntRegions = hunt.unit ? regionLookup.get(hunt.unit) ?? [] : [];
   const selectedRegions = huntRegions.filter((region) => plan.filters.region.includes(region));
   if (selectedRegions.length) {

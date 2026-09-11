@@ -8,7 +8,21 @@ const matchesSpeciesOption = (species, option) => {
   return species === option;
 };
 
-export const filterOpportunities = (hunts, { search = '', filters, regionLookup = new Map() }) => {
+const parseApiDate = (value) => {
+  const [month, day, year] = String(value ?? '').split('/').map(Number);
+  if (!month || !day || !year) return null;
+  return `${String(2000 + year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
+
+export const matchesDateRange = (hunt, dateRange) => {
+  if (!dateRange?.start || !dateRange?.end) return true;
+  const open = parseApiDate(hunt.open);
+  const close = parseApiDate(hunt.close);
+  if (!open || !close) return false;
+  return open <= dateRange.end && close >= dateRange.start;
+};
+
+export const filterOpportunities = (hunts, { search = '', filters, regionLookup = new Map(), dateRange = null }) => {
   const query = search.trim().toLowerCase();
   return hunts.filter((hunt) => {
     if (!isActiveBigGame(hunt.species)) return false;
@@ -27,6 +41,7 @@ export const filterOpportunities = (hunts, { search = '', filters, regionLookup 
       includesText(hunt.season, season) || includesText(hunt.method, season));
     const huntRegions = hunt.unit ? regionLookup.get(hunt.unit) ?? [] : [];
     const matchesRegion = !filters.region.length || filters.region.some((region) => huntRegions.includes(region));
-    return matchesQuery && matchesSpecies && matchesHuntType && matchesSeason && matchesRegion;
+    const matchesDate = matchesDateRange(hunt, dateRange);
+    return matchesQuery && matchesSpecies && matchesHuntType && matchesSeason && matchesRegion && matchesDate;
   });
 };
