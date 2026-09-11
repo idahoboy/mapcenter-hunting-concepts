@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Graphic from '@arcgis/core/Graphic.js';
+import FeatureLayer from '@arcgis/core/layers/FeatureLayer.js';
 import {
   ArrowLeft,
   Bookmark,
@@ -78,6 +79,7 @@ function MultiSelectFilter({ label, options, selected, onChange }) {
 function SearchPage() {
   const mapRef = useRef(null);
   const layerInstances = useRef(new Map());
+  const huntAreaLayer = useRef(null);
   const highlightHandle = useRef(null);
   const selectionGraphics = useRef([]);
   const [query, setQuery] = useState('');
@@ -239,28 +241,36 @@ function SearchPage() {
     setStatus(`${allLayers.find((layer) => layer.id === id)?.label} manually turned ${next ? 'on' : 'off'}.`);
   };
 
-  const focusUnit = async (item) => {
+  const focusHuntArea = async (item) => {
     setSelectedHunt(item.id);
-    const layer = layerInstances.current.get('game-units');
     const view = mapRef.current?.view;
     const mapUnits = getHuntMapUnits(item);
-    if (!layer || !view || !mapUnits.length) {
-      setStatus(`${item.areaLabel} does not resolve to a mapped game management unit.`);
+    const hasExactArea = item.map?.kind === 'hunt-area';
+    const layer = hasExactArea
+      ? (huntAreaLayer.current ??= new FeatureLayer({ url: item.map.url, outFields: ['*'], popupEnabled: false }))
+      : layerInstances.current.get('game-units');
+    if (!layer || !view || (!hasExactArea && !mapUnits.length)) {
+      setStatus(`${item.areaLabel} does not resolve to a mapped hunt area.`);
       return;
     }
     try {
-      setManualOverrides((current) => ({ ...current, 'game-units': true }));
-      layer.visible = true;
+      if (!hasExactArea) {
+        setManualOverrides((current) => ({ ...current, 'game-units': true }));
+        layer.visible = true;
+      }
+      await layer.load();
       const response = await layer.queryFeatures({
-        where: buildUnitWhereClause(mapUnits),
-        outFields: ['NAME', 'Elk_Zone'],
+        where: hasExactArea ? item.map.where : buildUnitWhereClause(mapUnits),
+        outFields: ['*'],
         returnGeometry: true,
       });
-      if (!response.features.length) throw new Error('No matching GMU boundaries');
+      if (!response.features.length) throw new Error('No matching hunt-area boundaries');
       highlightHandle.current?.remove();
       if (selectionGraphics.current.length) view.graphics.removeMany(selectionGraphics.current);
-      const layerView = await view.whenLayerView(layer);
-      highlightHandle.current = layerView.highlight(response.features);
+      if (!hasExactArea) {
+        const layerView = await view.whenLayerView(layer);
+        highlightHandle.current = layerView.highlight(response.features);
+      }
       selectionGraphics.current = response.features.map((feature) => new Graphic({
         geometry: feature.geometry,
         attributes: { ...feature.attributes, selectedHuntId: item.id },
@@ -282,7 +292,8 @@ function SearchPage() {
       const unitLabel = mapUnits.length === 1
         ? `Game Management Unit ${mapUnits[0]}`
         : `Game Management Units ${mapUnits.join(', ')}`;
-      setStatus(`${item.tag} selected and map centered on ${unitLabel}.`);
+      const boundaryLabel = hasExactArea ? `official Hunt Area ${item.areaLabel}` : unitLabel;
+      setStatus(`${item.tag} selected and map centered on ${boundaryLabel}.`);
     } catch {
       setStatus(`${item.areaLabel} selected. Map focus is temporarily unavailable.`);
     }
@@ -336,10 +347,10 @@ function SearchPage() {
           <div className="opportunity-list">
             {opportunities.map((item) => (
               <article className={selectedHunt === item.id ? 'opportunity-card selected' : 'opportunity-card'} key={item.id}>
-                <button className="card-hit-area" onClick={() => focusUnit(item)} aria-label={`Show ${item.tag}, ${item.areaLabel}, on map`} />
+                <button className="card-hit-area" onClick={() => focusHuntArea(item)} aria-label={`Show ${item.tag}, ${item.areaLabel}, on map`} />
                 <div className="unit-visual" style={{ '--unit-accent': item.kind === 'Controlled hunt' ? '#336f53' : '#536f3b' }}>
                   {selectedHunt === item.id && <b><MapPin size={12} />Selected on map</b>}
-                  <span>{item.unit ? 'GMU context' : 'Hunt area'}</span><strong className={(item.unit ?? 'IDFG').length > 3 ? 'long-unit' : ''}>{item.unit ?? 'IDFG'}</strong><small>Hunt {item.id}</small>
+                  <span>{item.areaId ? 'Official hunt area' : item.unit ? 'GMU context' : 'Hunt area'}</span><strong className={(item.unit ?? 'IDFG').length > 3 ? 'long-unit' : ''}>{item.unit ?? 'IDFG'}</strong><small>{item.areaId ? `areaid ${item.areaId} · ` : ''}Hunt {item.id}</small>
                 </div>
                 <div className="unit-details">
                   <div className="unit-title-row"><div><span>{item.kind} · {item.areaLabel}</span><h2>{item.tag}</h2></div></div>

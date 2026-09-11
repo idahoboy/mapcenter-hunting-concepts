@@ -13,6 +13,7 @@ const boundaryStyles = [
 
 function CompareMap({ hunts }) {
   const mappedHunts = hunts.filter((hunt) => hunt.map);
+  const exactAreaCount = mappedHunts.filter((hunt) => hunt.map.kind === 'hunt-area').length;
   const mapRef = useRef(null);
   const extentsRef = useRef(new Map());
   const allExtentRef = useRef(null);
@@ -23,8 +24,8 @@ function CompareMap({ hunts }) {
     if (!mapElement?.map || mapElement.dataset.planLoaded) return;
     mapElement.dataset.planLoaded = 'true';
     mapElement.view.aria = {
-      label: 'Saved opportunity GMU context map',
-      description: 'Interactive map showing inferred game-management-unit context for saved hunts.',
+      label: 'Saved opportunity Hunt Area map',
+      description: 'Interactive map showing official Hunt Area boundaries when areaid is available and GMU context otherwise.',
     };
 
     const layers = mappedHunts.map((hunt, index) => {
@@ -63,7 +64,8 @@ function CompareMap({ hunts }) {
           duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 650,
         });
       }
-      setStatus(`${extents.length} of ${mappedHunts.length} inferred GMU boundaries loaded.`);
+      const fallbackCount = mappedHunts.length - exactAreaCount;
+      setStatus(`${exactAreaCount} exact Hunt Area ${exactAreaCount === 1 ? 'boundary' : 'boundaries'}${fallbackCount ? ` and ${fallbackCount} GMU ${fallbackCount === 1 ? 'fallback' : 'fallbacks'}` : ''} loaded.`);
     } catch {
       setStatus('Some saved hunt boundaries are temporarily unavailable.');
     }
@@ -98,7 +100,7 @@ function CompareMap({ hunts }) {
           <arcgis-scale-bar slot="bottom-left" unit="dual" />
         </arcgis-map>
         <div className="compare-map-legend" aria-label="Saved hunt GMU context legend">
-          <span className="compare-map-legend-title"><span><MapPinned size={15} />GMU context</span><button onClick={showAll} aria-label="Show all inferred GMU boundaries"><Scan size={13} />All</button></span>
+          <span className="compare-map-legend-title"><span><MapPinned size={15} />Hunt areas</span><button onClick={showAll} aria-label="Show all mapped hunt boundaries"><Scan size={13} />All</button></span>
           {mappedHunts.map((hunt, index) => <button key={hunt.id} onClick={() => focusHunt(hunt)}><i style={{ '--boundary-color': boundaryStyles[index % boundaryStyles.length].css }} />{hunt.areaLabel}<Crosshair size={13} /></button>)}
         </div>
       </div>

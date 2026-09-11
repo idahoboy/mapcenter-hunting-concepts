@@ -29,12 +29,15 @@ export const inferUnit = (row) => {
 export const normalizeHunt = (row) => {
   const controlled = String(row.season).toLowerCase().startsWith('controlled');
   const unit = inferUnit(row);
+  const parsedAreaId = Number(row.areaid);
+  const areaId = Number.isInteger(parsedAreaId) && parsedAreaId > 0 ? parsedAreaId : null;
   return {
     id: String(row.id),
     kind: controlled ? 'Controlled hunt' : 'General season',
     species: row.game,
     season: row.season,
     areaLabel: row.area,
+    areaId,
     tagArea: row.tagarea,
     unit,
     tag: row.tag,
@@ -50,9 +53,16 @@ export const normalizeHunt = (row) => {
     status: controlled ? 'Controlled hunt application' : 'General-season tag',
     sourceUrl: `https://idfg.idaho.gov/ifwis/huntplanner/hunt/${row.id}`,
     apiVersion: api.version,
-    map: unit ? {
+    map: areaId ? {
+      kind: 'hunt-area',
+      url: api.huntAreaLayerUrl,
+      where: `ID = ${areaId}`,
+      label: `Hunt Area ${row.area}`,
+    } : unit ? {
+      kind: 'gmu',
       url: 'https://services.arcgis.com/FjJI5xHF2dUPVrgK/ArcGIS/rest/services/GameManagementUnits/FeatureServer/0',
       where: `NAME = '${unit.replaceAll("'", "''")}'`,
+      label: `GMU ${unit}`,
     } : null,
   };
 };

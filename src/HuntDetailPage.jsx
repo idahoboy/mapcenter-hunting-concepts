@@ -46,7 +46,11 @@ function HuntDetailPage({ huntId }) {
     const mapElement = event.target;
     if (!hunt || !mapElement?.map || mapElement.dataset.huntLoaded) return;
     mapElement.dataset.huntLoaded = hunt.id;
-    mapElement.view.aria = { label: `${hunt.areaLabel} map context`, description: `GMU context for live Hunt Planner record ${hunt.id}.` };
+    const exactArea = hunt.map?.kind === 'hunt-area';
+    mapElement.view.aria = {
+      label: `${hunt.areaLabel} hunt area map`,
+      description: `${exactArea ? 'Official Hunt Area boundary' : 'Inferred GMU context'} for live Hunt Planner record ${hunt.id}.`,
+    };
     if (!hunt.map) {
       setStatus(`${hunt.areaLabel} does not resolve to one GMU in API 1.1.`);
       return;
@@ -56,7 +60,7 @@ function HuntDetailPage({ huntId }) {
       definitionExpression: hunt.map.where,
       outFields: ['*'],
       popupEnabled: false,
-      title: `GMU ${hunt.unit}`,
+      title: hunt.map.label,
       renderer: { type: 'simple', symbol: { type: 'simple-fill', color: [197, 99, 48, .24], outline: { color: [128, 61, 28, 1], width: 2.5 } } },
     });
     mapElement.map.add(boundary);
@@ -64,9 +68,9 @@ function HuntDetailPage({ huntId }) {
       await boundary.load();
       const result = await boundary.queryExtent({ where: hunt.map.where });
       if (result.extent) await mapElement.view.goTo(result.extent.expand(1.35), { duration: reducedMotion ? 0 : 550 });
-      setStatus(`GMU ${hunt.unit} context loaded.`);
+      setStatus(`${exactArea ? 'Official Hunt Area boundary' : `GMU ${hunt.unit} context`} loaded.`);
     } catch {
-      setStatus('The mapped GMU is temporarily unavailable.');
+      setStatus('The mapped hunt area is temporarily unavailable.');
     }
   };
 
@@ -122,9 +126,11 @@ function HuntDetailPage({ huntId }) {
               <div className="detail-section-heading"><div><span className="detail-eyebrow">Live GIS context</span><h2>Map the hunt area</h2></div></div>
               <div className="detail-map">
                 <arcgis-map basemap="topo-vector" center="-114.52,45.5" zoom="6" onarcgisViewReadyChange={loadBoundary}><arcgis-zoom slot="top-left" /><arcgis-locate slot="top-left" /><arcgis-scale-bar slot="bottom-left" unit="dual" /></arcgis-map>
-                <span className="detail-map-label"><Crosshair size={15} />{hunt.unit ? `GMU ${hunt.unit} context` : 'Statewide context'}</span>
+                <span className="detail-map-label"><Crosshair size={15} />{hunt.map?.kind === 'hunt-area' ? `Official Hunt Area · areaid ${hunt.areaId}` : hunt.unit ? `GMU ${hunt.unit} context` : 'Statewide context'}</span>
               </div>
-              <div className="restriction-callout"><Database size={18} /><div><strong>Boundary join is intentionally conservative</strong><p>API 1.1 identifies the hunt area by name, but its current public list response does not return the <code>areaid</code> used to join the official Hunt Area GIS feature. The map shows inferred GMU context when available; use the official record for the legal hunt boundary.</p></div></div>
+              {hunt.areaId
+                ? <div className="restriction-callout"><Database size={18} /><div><strong>Exact Hunt Area join</strong><p>API 1.1 returned <code>areaid {hunt.areaId}</code>. The map queries that ID directly against the live official Hunt Area GIS service.</p></div></div>
+                : <div className="restriction-callout"><Database size={18} /><div><strong>GMU context fallback</strong><p>This record does not return an <code>areaid</code>. The map shows inferred GMU context when available; use the official record for the legal hunt boundary.</p></div></div>}
             </section>
 
             <section className="detail-section">

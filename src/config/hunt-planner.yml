@@ -24,6 +24,7 @@ dataProviders:
       end: '2026-12-31'
     pageSize: 25
     catalogLimit: 5000
+    huntAreaLayerUrl: https://gisportal-idfg.idaho.gov/hosting/rest/services/Hunting/MapServer/0
   fishingPlanner:
     label: Fishing Planner API
     version: '2.0'
