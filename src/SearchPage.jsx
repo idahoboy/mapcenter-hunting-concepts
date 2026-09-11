@@ -45,6 +45,7 @@ const initialFilters = {
   season: [],
   huntType: [],
   region: [],
+  sex: [],
 };
 
 const filterOptions = {
@@ -53,6 +54,13 @@ const filterOptions = {
   huntType: { label: 'Hunt type', options: ['General season', 'Controlled hunt'] },
   region: { label: 'Region', options: REGION_NAMES },
 };
+
+const alphaCompare = (a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true, sensitivity: 'base' });
+const sortOpportunities = (rows) => [...rows].sort((a, b) =>
+  alphaCompare(a.areaLabel || a.unit, b.areaLabel || b.unit) || alphaCompare(a.tag, b.tag) || alphaCompare(a.id, b.id));
+const speciesMatches = (hunt, option) => option === 'Deer'
+  ? String(hunt.species ?? '').toLowerCase().includes('deer')
+  : String(hunt.species ?? '') === option;
 
 function MultiSelectFilter({ label, options, selected, onChange }) {
   const summary = selected.length === 0 ? label : selected.length === 1 ? selected[0] : `${label} · ${selected.length}`;
@@ -87,6 +95,7 @@ function SearchPage() {
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
   const [selectedHunt, setSelectedHunt] = useState(null);
+  const [resultView, setResultView] = useState('alpha');
   const [catalog, setCatalog] = useState([]);
   const [regionLookup, setRegionLookup] = useState(new Map());
   const [regionState, setRegionState] = useState('loading');
@@ -100,6 +109,15 @@ function SearchPage() {
   const [status, setStatus] = useState('Search assistant ready.');
   const { summary: locationSummary, attach: attachIdentify, close: closeIdentify, zoomTo: zoomToIdentify } = useMapIdentify(layerInstances, allLayers);
   const { isSaved, toggle: toggleSavedHunt } = useHuntPlan();
+  const activeFilterOptions = useMemo(() => ({
+    ...filterOptions,
+    sex: {
+      label: 'Sex / ornament',
+      options: [...new Set(catalog
+        .filter((hunt) => !filters.species.length || filters.species.some((option) => speciesMatches(hunt, option)))
+        .map((hunt) => hunt.sex).filter(Boolean))].sort(alphaCompare),
+    },
+  }), [catalog, filters.species]);
 
   useEffect(() => () => {
     highlightHandle.current?.remove();
@@ -168,7 +186,18 @@ function SearchPage() {
     [catalog, submittedQuery, filters, regionLookup, aiPlan],
   );
   const resultTotal = filteredOpportunities.length;
-  const opportunities = filteredOpportunities.slice(0, config.dataProviders.huntPlanner.pageSize);
+  const sortedOpportunities = useMemo(() => sortOpportunities(filteredOpportunities), [filteredOpportunities]);
+  const opportunities = sortedOpportunities.slice(0, config.dataProviders.huntPlanner.pageSize);
+  const groupedOpportunities = useMemo(() => {
+    if (resultView !== 'location') return [{ label: null, items: opportunities }];
+    const groups = new Map();
+    opportunities.forEach((hunt) => {
+      const label = hunt.areaLabel || (hunt.unit ? `Unit ${hunt.unit}` : 'Unspecified location');
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(hunt);
+    });
+    return [...groups.entries()].sort((a, b) => alphaCompare(a[0], b[0])).map(([label, items]) => ({ label, items }));
+  }, [opportunities, resultView]);
 
   const rankedLayers = useMemo(
     () => deriveLayerStack(allLayers, query, filters),
@@ -227,7 +256,7 @@ function SearchPage() {
       const plan = await interpretOpportunitySearch({
         query: naturalLanguageQuery,
         currentFilters: filters,
-        filterOptions,
+        filterOptions: activeFilterOptions,
         layers: allLayers,
       });
       const appliedPlan = { ...plan, search: resolveCatalogSearch(plan.search, catalog) };
@@ -243,7 +272,7 @@ function SearchPage() {
       const fallback = createFallbackOpportunityPlan({
         query: naturalLanguageQuery,
         currentFilters: filters,
-        filterOptions,
+        filterOptions: activeFilterOptions,
         layers: allLayers,
       });
       setFilters(fallback.filters);
@@ -347,7 +376,7 @@ function SearchPage() {
             </button>
           </div>
           <div className="filter-strip" aria-label="Search filters">
-            {Object.entries(filterOptions).map(([key, definition]) => (
+            {Object.entries(activeFilterOptions).map(([key, definition]) => (
               <MultiSelectFilter
                 key={key}
                 label={definition.label}
@@ -356,6 +385,12 @@ function SearchPage() {
                 onChange={(values) => updateFilter(key, values)}
               />
             ))}
+          </div>
+
+          <div className="result-view-controls" aria-label="Result organization">
+            <span>Organize results</span>
+            <button type="button" className={resultView === 'alpha' ? 'active' : ''} onClick={() => setResultView('alpha')}>A–Z</button>
+            <button type="button" className={resultView === 'location' ? 'active' : ''} onClick={() => setResultView('location')}>By location</button>
           </div>
         </section>
 
@@ -374,7 +409,9 @@ function SearchPage() {
           </aside>
 
           <div className="opportunity-list">
-            {opportunities.map((item) => (
+            {groupedOpportunities.map((group) => <div className="opportunity-group" key={group.label || 'all'}>
+              {group.label && <h2 className="opportunity-group-title">{group.label}</h2>}
+              {group.items.map((item) => (
               <article className={selectedHunt === item.id ? 'opportunity-card selected' : 'opportunity-card'} key={item.id}>
                 <button className="card-hit-area" onClick={() => focusHuntArea(item)} aria-label={`Show ${item.tag}, ${item.areaLabel}, on map`} />
                 <div className="unit-visual" style={{ '--unit-accent': item.kind === 'Controlled hunt' ? '#336f53' : '#536f3b' }}>
@@ -389,7 +426,8 @@ function SearchPage() {
                   <div className="unit-footer"><span><Database size={14} />Hunt Planner API {item.apiVersion}</span><div className="unit-actions"><button className={isSaved(item.id) ? 'save-result saved' : 'save-result'} onClick={() => toggleSavedHunt(item.id)} aria-pressed={isSaved(item.id)}>{isSaved(item.id) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}{isSaved(item.id) ? 'Saved' : 'Save'}</button><a href={`/hunt/${item.id}`} aria-label={`View details for ${item.tag}`}>View details <ChevronRight size={15} /></a></div></div>
                 </div>
               </article>
-            ))}
+              ))}
+            </div>)}
             {apiState === 'ready' && opportunities.length === 0 && <div className="api-empty"><Search size={24} /><strong>No live hunts matched those filters.</strong><span>{filters.region.length && regionState === 'loading' ? 'Matching GMUs to live regional boundaries…' : 'Try broader species, hunt type, region, or search terms.'}</span></div>}
           </div>
         </section>

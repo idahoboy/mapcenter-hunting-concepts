@@ -41,7 +41,8 @@ export const filterOpportunities = (hunts, { search = '', filters, regionLookup 
       includesText(hunt.season, season) || includesText(hunt.method, season));
     const huntRegions = hunt.unit ? regionLookup.get(hunt.unit) ?? [] : [];
     const matchesRegion = !filters.region.length || filters.region.some((region) => huntRegions.includes(region));
+    const matchesSex = !filters.sex?.length || filters.sex.includes(hunt.sex);
     const matchesDate = matchesDateRange(hunt, dateRange);
-    return matchesQuery && matchesSpecies && matchesHuntType && matchesSeason && matchesRegion && matchesDate;
+    return matchesQuery && matchesSpecies && matchesHuntType && matchesSeason && matchesRegion && matchesSex && matchesDate;
   });
 };
