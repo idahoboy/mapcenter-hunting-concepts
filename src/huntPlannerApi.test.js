@@ -6,9 +6,13 @@ const liveShape = { season: 'Controlled Hunt Either Sex', tagid: 33609, tag: 'El
 describe('Hunt Planner API adapter', () => {
   it('normalizes the documented API row without inventing planning facts', () => {
     expect(normalizeHunt(liveShape)).toMatchObject({
-      id: '82313', areaId: 2830, unit: '30A', dates: 'Aug 1, 2026–Aug 29, 2026', tagAvailability: '10 permits',
+      id: '82313', areaId: 2830, opGroupId: 33609, unit: '30A', dates: 'Aug 1, 2026–Aug 29, 2026', tagAvailability: '10 permits',
       map: { kind: 'hunt-area', where: 'ID = 2830', label: 'Hunt Area 30A-1' },
     });
+  });
+
+  it('prefers an explicit opgroup value while retaining tagid compatibility', () => {
+    expect(normalizeHunt({ ...liveShape, opgroupid: 44001 }).opGroupId).toBe(44001);
   });
 
   it('extracts a GMU from general-season area text', () => {

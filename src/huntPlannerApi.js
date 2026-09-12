@@ -31,6 +31,8 @@ export const normalizeHunt = (row) => {
   const unit = inferUnit(row);
   const parsedAreaId = Number(row.areaid);
   const areaId = Number.isInteger(parsedAreaId) && parsedAreaId > 0 ? parsedAreaId : null;
+  const parsedOpGroupId = Number(row.opgroupid ?? row.opgroup ?? row.tagid);
+  const opGroupId = Number.isInteger(parsedOpGroupId) && parsedOpGroupId > 0 ? parsedOpGroupId : null;
   return {
     id: String(row.id),
     kind: controlled ? 'Controlled hunt' : 'General season',
@@ -42,6 +44,7 @@ export const normalizeHunt = (row) => {
     unit,
     tag: row.tag,
     tagId: row.tagid,
+    opGroupId,
     huntNumber: row.number,
     permits: Number(row.permits),
     tagAvailability: Number(row.permits) >= 99999 ? 'Unlimited tags' : `${Number(row.permits).toLocaleString()} permits`,

@@ -70,6 +70,21 @@ const speciesMatches = (hunt, option) => option === 'Deer'
   ? String(hunt.species ?? '').toLowerCase().includes('deer')
   : String(hunt.species ?? '') === option;
 
+const groupDescriptor = (hunt, mode) => {
+  if (mode === 'location') {
+    return hunt.areaId
+      ? { key: `area:${hunt.areaId}`, label: `${hunt.areaLabel || `Unit ${hunt.unit}`} · Hunt area ${hunt.areaId}` }
+      : { key: `unit:${hunt.unit || 'unspecified'}`, label: hunt.unit ? `Unit ${hunt.unit}` : 'Unspecified location' };
+  }
+  if (mode === 'tag') {
+    return hunt.opGroupId
+      ? { key: `opgroup:${hunt.opGroupId}`, label: `${hunt.tag || 'Tag'} · Tag group ${hunt.opGroupId}` }
+      : { key: `tag:${hunt.tag || 'unspecified'}`, label: hunt.tag || 'Unspecified tag' };
+  }
+  const value = mode === 'sex' ? hunt.sex : mode === 'species' ? hunt.species : hunt.method;
+  return { key: `${mode}:${value || 'unspecified'}`, label: value || 'Unspecified' };
+};
+
 function MultiSelectFilter({ label, options, selected, onChange }) {
   const summary = selected.length === 0 ? label : selected.length === 1 ? selected[0] : `${label} · ${selected.length}`;
   return (
@@ -247,19 +262,27 @@ function SearchPage() {
     : attributeFilteredOpportunities, [attributeFilteredOpportunities, spatialMatchIds]);
   const resultTotal = filteredOpportunities.length;
   const sortedOpportunities = useMemo(() => sortOpportunities(filteredOpportunities, resultView), [filteredOpportunities, resultView]);
-  const opportunities = sortedOpportunities.slice(0, config.dataProviders.huntPlanner.pageSize);
   const groupedOpportunities = useMemo(() => {
-    if (!['location', 'tag', 'sex', 'species', 'weapon'].includes(resultView)) return [{ label: null, items: opportunities }];
+    const pageSize = config.dataProviders.huntPlanner.pageSize;
+    if (!['location', 'tag', 'sex', 'species', 'weapon'].includes(resultView)) {
+      return [{ key: 'all', label: null, items: sortedOpportunities.slice(0, pageSize) }];
+    }
     const groups = new Map();
-    opportunities.forEach((hunt) => {
-      const label = resultView === 'location'
-        ? hunt.areaLabel || (hunt.unit ? `Unit ${hunt.unit}` : 'Unspecified location')
-        : (resultView === 'tag' ? hunt.tag : resultView === 'sex' ? hunt.sex : resultView === 'species' ? hunt.species : hunt.method) || 'Unspecified';
-      if (!groups.has(label)) groups.set(label, []);
-      groups.get(label).push(hunt);
+    sortedOpportunities.forEach((hunt) => {
+      const descriptor = groupDescriptor(hunt, resultView);
+      if (!groups.has(descriptor.key)) groups.set(descriptor.key, { ...descriptor, items: [] });
+      groups.get(descriptor.key).items.push(hunt);
     });
-    return [...groups.entries()].sort((a, b) => alphaCompare(a[0], b[0])).map(([label, items]) => ({ label, items }));
-  }, [opportunities, resultView]);
+    const visibleGroups = [];
+    let visibleRows = 0;
+    for (const group of groups.values()) {
+      if (visibleRows >= pageSize) break;
+      visibleGroups.push(group);
+      visibleRows += group.items.length;
+    }
+    return visibleGroups;
+  }, [sortedOpportunities, resultView]);
+  const opportunities = useMemo(() => groupedOpportunities.flatMap((group) => group.items), [groupedOpportunities]);
 
   const rankedLayers = useMemo(
     () => deriveLayerStack(allLayers, query, filters),
@@ -482,8 +505,8 @@ function SearchPage() {
           </div>}
 
           <div className="opportunity-list">
-            {groupedOpportunities.map((group) => <div className="opportunity-group" key={group.label || 'all'}>
-              {group.label && <h2 className="opportunity-group-title">{group.label}</h2>}
+            {groupedOpportunities.map((group) => <div className="opportunity-group" key={group.key}>
+              {group.label && <h2 className="opportunity-group-title"><span>{group.label}</span><small>{group.items.length} {group.items.length === 1 ? 'opportunity' : 'opportunities'}</small></h2>}
               {group.items.map((item) => (
               <article className={selectedHunt === item.id ? 'opportunity-card selected' : 'opportunity-card'} key={item.id}>
                 <button className="card-hit-area" onClick={() => focusHuntArea(item)} aria-label={`Show ${item.tag}, ${item.areaLabel}, on map`} />

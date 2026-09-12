@@ -292,7 +292,8 @@
 
 .opportunity-list { display: grid; gap: .65rem; }
 .opportunity-group { display: grid; gap: .65rem; }
-.opportunity-group-title { margin: .5rem 0 0; color: var(--ink); font-size: 1rem; letter-spacing: .03em; }
+.opportunity-group-title { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin: .5rem 0 0; color: var(--ink); font-size: 1rem; letter-spacing: .03em; }
+.opportunity-group-title small { color: var(--muted); font-size: .72rem; white-space: nowrap; }
 .result-view-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .4rem; margin: .4rem 0 .8rem; color: var(--muted); font-size: .78rem; font-weight: 700; }
 .result-view-controls button { border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); padding: .38rem .72rem; font: inherit; cursor: pointer; }
 .result-view-controls button.active { border-color: var(--forest); background: var(--forest); color: white; }
