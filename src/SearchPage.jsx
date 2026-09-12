@@ -144,8 +144,9 @@ function SearchPage() {
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
   const [selectedHunt, setSelectedHunt] = useState(null);
-  const [groupBy, setGroupBy] = useState('tag');
+  const [groupBy, setGroupBy] = useState('none');
   const [sortBy, setSortBy] = useState('alpha');
+  const [hasViewedResults, setHasViewedResults] = useState(false);
   const [catalog, setCatalog] = useState([]);
   const [regionLookup, setRegionLookup] = useState(new Map());
   const [regionState, setRegionState] = useState('loading');
@@ -361,6 +362,7 @@ function SearchPage() {
       setSubmittedQuery('');
       setIsOptimizing(false);
       setStackOpen(true);
+      setHasViewedResults(true);
       setStatus('Selected filters applied to Hunt Planner API 1.1 results.');
       return;
     }
@@ -376,6 +378,7 @@ function SearchPage() {
       setFilters(appliedPlan.filters);
       setSubmittedQuery(appliedPlan.search);
       setAiPlan(appliedPlan);
+      setHasViewedResults(true);
       setManualOverrides(Object.fromEntries(
         allLayers.map((layer) => [layer.id, appliedPlan.layerIds.includes(layer.id)]),
       ));
@@ -395,6 +398,7 @@ function SearchPage() {
       ));
       setSubmittedQuery(fallback.search);
       setStackOpen(true);
+      setHasViewedResults(true);
       setStatus(fallback.summary);
     } finally {
       setIsOptimizing(false);
@@ -404,6 +408,11 @@ function SearchPage() {
   const updateFilter = (key, values) => {
     setFilters((current) => ({ ...current, [key]: values }));
     setManualOverrides({});
+  };
+
+  const revealFilteredResults = () => {
+    setHasViewedResults(true);
+    setStatus(`${resultTotal.toLocaleString()} filtered Hunt Planner opportunities shown.`);
   };
 
   const toggleLayer = (id) => {
@@ -500,38 +509,58 @@ function SearchPage() {
             ))}
           </div>
 
+          <div className="search-gate-actions">
+            <p><strong>{apiState === 'loading' ? 'Checking live opportunities…' : `${resultTotal.toLocaleString()} matches ready`}</strong><span>Choose as many filters as you need before opening the results.</span></p>
+            <button type="button" onClick={revealFilteredResults} disabled={apiState === 'loading'} aria-controls="search-results">
+              {hasViewedResults ? `Update ${resultTotal.toLocaleString()} results` : `Show ${resultTotal.toLocaleString()} opportunities`}<ChevronRight size={17} />
+            </button>
+          </div>
+
         </section>
 
         <section className="search-results-pane" id="search-results" aria-labelledby="results-title">
+          {!hasViewedResults ? <div className="pre-results-panel">
+            <span>Start with what matters</span>
+            <h1 id="results-title">Filter before you browse</h1>
+            <p>Select species, season, hunt type, region, and sex or ornament above. The match count updates as you narrow the live Hunt Planner catalog.</p>
+            <div className="pre-results-steps" aria-label="Opportunity search steps">
+              <div><b>1</b><span><strong>Describe or select</strong><small>Use plain language or the filters.</small></span></div>
+              <div><b>2</b><span><strong>Review the count</strong><small>Know the result size before opening it.</small></span></div>
+              <div><b>3</b><span><strong>Explore the map</strong><small>Select a result to highlight its area.</small></span></div>
+            </div>
+          </div> : <>
           <div className="results-toolbar">
             <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">2026 hunt opportunities</h1><p>{apiState === 'loading' ? 'Loading Hunt Planner API 1.1…' : apiState === 'error' ? 'Live data is temporarily unavailable' : `${resultTotal.toLocaleString()} authoritative records · showing first ${opportunities.length}`}</p></div>
             <span className="live-data-badge"><Database size={14} />API 1.1 live</span>
           </div>
 
-          <div className="result-view-controls" aria-label="Result organization">
-            <label>
-              <span>Group results by</span>
-              <select value={groupBy} onChange={(event) => setGroupBy(event.target.value)}>
-                <option value="tag">Tag permission</option>
-                <option value="location">Hunt area</option>
-                <option value="sex">Sex / ornament</option>
-                <option value="species">Species</option>
-                <option value="weapon">Weapon / method</option>
-                <option value="none">No grouping</option>
-              </select>
-            </label>
-            <label>
-              <span>Sort within groups by</span>
-              <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-                <option value="alpha">Area / unit A–Z</option>
-                <option value="date">Opening date</option>
-                <option value="tag">Tag A–Z</option>
-                <option value="sex">Sex / ornament A–Z</option>
-                <option value="species">Species A–Z</option>
-                <option value="weapon">Weapon / method A–Z</option>
-              </select>
-            </label>
-          </div>
+          <details className="organize-disclosure">
+            <summary>Organize results <ChevronDown size={15} aria-hidden="true" /></summary>
+            <div className="result-view-controls" aria-label="Result organization">
+              <label>
+                <span>Group results by</span>
+                <select value={groupBy} onChange={(event) => setGroupBy(event.target.value)}>
+                  <option value="none">No grouping</option>
+                  <option value="tag">Tag permission</option>
+                  <option value="location">Hunt area</option>
+                  <option value="sex">Sex / ornament</option>
+                  <option value="species">Species</option>
+                  <option value="weapon">Weapon / method</option>
+                </select>
+              </label>
+              <label>
+                <span>Sort within groups by</span>
+                <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+                  <option value="alpha">Area / unit A–Z</option>
+                  <option value="date">Opening date</option>
+                  <option value="tag">Tag A–Z</option>
+                  <option value="sex">Sex / ornament A–Z</option>
+                  <option value="species">Species A–Z</option>
+                  <option value="weapon">Weapon / method A–Z</option>
+                </select>
+              </label>
+            </div>
+          </details>
 
           <aside className="assistant-note">
             <span><Sparkles size={17} /></span>
@@ -573,6 +602,7 @@ function SearchPage() {
             </section>)}
             {apiState === 'ready' && opportunities.length === 0 && <div className="api-empty"><Search size={24} /><strong>No live hunts matched those filters.</strong><span>{filters.region.length && regionState === 'loading' ? 'Matching GMUs to live regional boundaries…' : 'Try broader species, hunt type, region, or search terms.'}</span></div>}
           </div>
+          </>}
         </section>
 
         <section className="search-map-pane" aria-label="Opportunity map">
