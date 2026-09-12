@@ -304,7 +304,7 @@
 .tag-group-summary span, .tag-group-summary small { padding: .24rem .42rem; border-radius: 999px; color: white; background: rgba(255,255,255,.13); font-size: .52rem; font-weight: 750; }
 .tag-group-summary small { color: rgba(255,255,255,.72); background: transparent; }
 .tag-permission-group .opportunity-card { box-shadow: none; }
-.result-view-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .55rem; margin: .4rem 0 .8rem; color: var(--muted); font-size: .72rem; font-weight: 750; }
+.result-view-controls { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: .55rem; margin: 0 0 .75rem; padding: .55rem .65rem; border: 1px solid #d8dfda; border-radius: .7rem; color: var(--muted); background: #f5f7f4; font-size: .72rem; font-weight: 750; }
 .result-view-controls label { display: inline-flex; align-items: center; gap: .35rem; min-width: 0; }
 .result-view-controls label > span { white-space: nowrap; }
 .result-view-controls select { min-width: 130px; max-width: 190px; border: 1px solid var(--line); border-radius: 999px; padding: .42rem 1.8rem .42rem .68rem; color: var(--ink); background: var(--surface); font: inherit; cursor: pointer; }

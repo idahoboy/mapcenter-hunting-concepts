@@ -144,7 +144,7 @@ function SearchPage() {
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
   const [selectedHunt, setSelectedHunt] = useState(null);
-  const [groupBy, setGroupBy] = useState('none');
+  const [groupBy, setGroupBy] = useState('tag');
   const [sortBy, setSortBy] = useState('alpha');
   const [catalog, setCatalog] = useState([]);
   const [regionLookup, setRegionLookup] = useState(new Map());
@@ -500,20 +500,28 @@ function SearchPage() {
             ))}
           </div>
 
+        </section>
+
+        <section className="search-results-pane" id="search-results" aria-labelledby="results-title">
+          <div className="results-toolbar">
+            <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">2026 hunt opportunities</h1><p>{apiState === 'loading' ? 'Loading Hunt Planner API 1.1…' : apiState === 'error' ? 'Live data is temporarily unavailable' : `${resultTotal.toLocaleString()} authoritative records · showing first ${opportunities.length}`}</p></div>
+            <span className="live-data-badge"><Database size={14} />API 1.1 live</span>
+          </div>
+
           <div className="result-view-controls" aria-label="Result organization">
             <label>
-              <span>Group by</span>
+              <span>Group results by</span>
               <select value={groupBy} onChange={(event) => setGroupBy(event.target.value)}>
-                <option value="none">None</option>
-                <option value="location">Hunt area</option>
                 <option value="tag">Tag permission</option>
+                <option value="location">Hunt area</option>
                 <option value="sex">Sex / ornament</option>
                 <option value="species">Species</option>
                 <option value="weapon">Weapon / method</option>
+                <option value="none">No grouping</option>
               </select>
             </label>
             <label>
-              <span>Sort by</span>
+              <span>Sort within groups by</span>
               <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
                 <option value="alpha">Area / unit A–Z</option>
                 <option value="date">Opening date</option>
@@ -523,13 +531,6 @@ function SearchPage() {
                 <option value="weapon">Weapon / method A–Z</option>
               </select>
             </label>
-          </div>
-        </section>
-
-        <section className="search-results-pane" id="search-results" aria-labelledby="results-title">
-          <div className="results-toolbar">
-            <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">2026 hunt opportunities</h1><p>{apiState === 'loading' ? 'Loading Hunt Planner API 1.1…' : apiState === 'error' ? 'Live data is temporarily unavailable' : `${resultTotal.toLocaleString()} authoritative records · showing first ${opportunities.length}`}</p></div>
-            <span className="live-data-badge"><Database size={14} />API 1.1 live</span>
           </div>
 
           <aside className="assistant-note">
