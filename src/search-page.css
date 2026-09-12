@@ -294,6 +294,16 @@
 .opportunity-group { display: grid; gap: .65rem; }
 .opportunity-group-title { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin: .5rem 0 0; color: var(--ink); font-size: 1rem; letter-spacing: .03em; }
 .opportunity-group-title small { color: var(--muted); font-size: .72rem; white-space: nowrap; }
+.tag-permission-group { gap: .5rem; padding: .55rem; border: 1px solid #cbd8d0; border-radius: 1rem; background: #f3f7f4; }
+.tag-permission-group + .tag-permission-group { margin-top: .35rem; }
+.tag-group-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .65rem .75rem; border-radius: .7rem; color: white; background: var(--forest); }
+.tag-group-header h2 { margin: .15rem 0 .08rem; font-family: Georgia, serif; font-size: 1.05rem; line-height: 1.15; }
+.tag-group-header p { margin: 0; color: rgba(255,255,255,.8); font-size: .62rem; }
+.tag-group-eyebrow { display: inline-flex; align-items: center; gap: .28rem; color: #f2d8c8; font-size: .53rem; font-weight: 850; letter-spacing: .11em; text-transform: uppercase; }
+.tag-group-summary { display: flex; flex: 0 1 48%; flex-wrap: wrap; justify-content: flex-end; gap: .3rem; }
+.tag-group-summary span, .tag-group-summary small { padding: .24rem .42rem; border-radius: 999px; color: white; background: rgba(255,255,255,.13); font-size: .52rem; font-weight: 750; }
+.tag-group-summary small { color: rgba(255,255,255,.72); background: transparent; }
+.tag-permission-group .opportunity-card { box-shadow: none; }
 .result-view-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .55rem; margin: .4rem 0 .8rem; color: var(--muted); font-size: .72rem; font-weight: 750; }
 .result-view-controls label { display: inline-flex; align-items: center; gap: .35rem; min-width: 0; }
 .result-view-controls label > span { white-space: nowrap; }
@@ -458,6 +468,8 @@
   .result-view-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; }
   .result-view-controls label { display: grid; gap: .2rem; }
   .result-view-controls select { width: 100%; max-width: none; }
+  .tag-group-header { align-items: flex-start; flex-direction: column; gap: .55rem; }
+  .tag-group-summary { flex-basis: auto; justify-content: flex-start; }
   .search-map-pane { order: 2; flex: 0 0 43vh; width: 100%; }
   .search-results-pane { order: 3; overflow: visible; width: 100%; border-right: 0; }
   .smart-stack { top: .5rem; right: .5rem; max-height: calc(100% - 1rem); }

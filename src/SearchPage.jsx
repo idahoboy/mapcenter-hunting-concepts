@@ -107,6 +107,31 @@ function MultiSelectFilter({ label, options, selected, onChange }) {
   );
 }
 
+function OpportunityGroupHeading({ group, mode }) {
+  if (mode !== 'tag') {
+    return <h2 className="opportunity-group-title"><span>{group.label}</span><small>{group.items.length} {group.items.length === 1 ? 'opportunity' : 'opportunities'}</small></h2>;
+  }
+
+  const representative = group.items[0];
+  const areaCount = new Set(group.items.map((hunt) => hunt.areaId ? `area:${hunt.areaId}` : `unit:${hunt.unit || hunt.areaLabel}`)).size;
+  const species = [...new Set(group.items.map((hunt) => hunt.species).filter(Boolean))];
+  const methods = [...new Set(group.items.map((hunt) => hunt.method).filter(Boolean))];
+  return (
+    <header className="tag-group-header">
+      <div>
+        <span className="tag-group-eyebrow"><Bookmark size={14} aria-hidden="true" />Tag permission</span>
+        <h2>{representative.tag || 'Unnamed tag'}</h2>
+        <p>{group.items.length} season {group.items.length === 1 ? 'opportunity' : 'opportunities'} across {areaCount} hunt {areaCount === 1 ? 'area' : 'areas'}</p>
+      </div>
+      <div className="tag-group-summary" aria-label="Tag group summary">
+        {species.map((value) => <span key={value}>{value}</span>)}
+        {methods.map((value) => <span key={value}>{value}</span>)}
+        {representative.opGroupId && <small>opgroup {representative.opGroupId}</small>}
+      </div>
+    </header>
+  );
+}
+
 function SearchPage() {
   const mapRef = useRef(null);
   const layerInstances = useRef(new Map());
@@ -526,8 +551,8 @@ function SearchPage() {
           </div>}
 
           <div className="opportunity-list">
-            {groupedOpportunities.map((group) => <div className="opportunity-group" key={group.key}>
-              {group.label && <h2 className="opportunity-group-title"><span>{group.label}</span><small>{group.items.length} {group.items.length === 1 ? 'opportunity' : 'opportunities'}</small></h2>}
+            {groupedOpportunities.map((group) => <section className={`opportunity-group${groupBy === 'tag' ? ' tag-permission-group' : ''}`} key={group.key}>
+              {group.label && <OpportunityGroupHeading group={group} mode={groupBy} />}
               {group.items.map((item) => (
               <article className={selectedHunt === item.id ? 'opportunity-card selected' : 'opportunity-card'} key={item.id}>
                 <button className="card-hit-area" onClick={() => focusHuntArea(item)} aria-label={`Show ${item.tag}, ${item.areaLabel}, on map`} />
@@ -544,7 +569,7 @@ function SearchPage() {
                 </div>
               </article>
               ))}
-            </div>)}
+            </section>)}
             {apiState === 'ready' && opportunities.length === 0 && <div className="api-empty"><Search size={24} /><strong>No live hunts matched those filters.</strong><span>{filters.region.length && regionState === 'loading' ? 'Matching GMUs to live regional boundaries…' : 'Try broader species, hunt type, region, or search terms.'}</span></div>}
           </div>
         </section>
