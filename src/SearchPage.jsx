@@ -132,6 +132,45 @@ function OpportunityGroupHeading({ group, mode }) {
   );
 }
 
+function TagPermissionResult({ group, selectedHunt, focusHuntArea, isSaved, toggleSavedHunt }) {
+  const representative = group.items[0];
+  const areaCount = new Set(group.items.map((hunt) => hunt.areaId ? `area:${hunt.areaId}` : `unit:${hunt.unit || hunt.areaLabel}`)).size;
+  const species = [...new Set(group.items.map((hunt) => hunt.species).filter(Boolean))];
+  return (
+    <details className="tag-result-group">
+      <summary>
+        <span className="tag-result-mark"><Bookmark size={16} aria-hidden="true" /></span>
+        <span className="tag-result-title">
+          <small>Tag permission</small>
+          <strong>{representative.tag || 'Unnamed tag'}</strong>
+          <span>{species.join(' · ')}</span>
+        </span>
+        <span className="tag-result-count"><strong>{group.items.length}</strong> season {group.items.length === 1 ? 'option' : 'options'}<small>{areaCount} hunt {areaCount === 1 ? 'area' : 'areas'}</small></span>
+        <ChevronDown size={18} aria-hidden="true" />
+      </summary>
+      <div className="tag-season-list">
+        {group.items.map((item) => (
+          <article className={selectedHunt === item.id ? 'tag-season-row selected' : 'tag-season-row'} key={item.id}>
+            <button className="tag-season-hit" type="button" onClick={() => focusHuntArea(item)} aria-label={`Show ${item.tag}, ${item.areaLabel}, on map`} />
+            <span className="tag-season-area"><strong>{item.areaLabel}</strong><small>{item.areaId ? `areaid ${item.areaId}` : item.unit ? `GMU ${item.unit}` : 'Area unavailable'} · Hunt {item.id}</small></span>
+            <span><CalendarDays size={14} aria-hidden="true" />{item.dates}</span>
+            <span><Target size={14} aria-hidden="true" />{item.method}</span>
+            <span><PawPrint size={14} aria-hidden="true" />{item.sex}</span>
+            <span className="tag-season-availability">{item.tagAvailability}</span>
+            <span className="tag-season-actions">
+              <button type="button" onClick={() => toggleSavedHunt(item.id)} aria-pressed={isSaved(item.id)} aria-label={`${isSaved(item.id) ? 'Remove' : 'Save'} hunt ${item.id}`}>
+                {isSaved(item.id) ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+              </button>
+              <a href={`/hunt/${item.id}`} aria-label={`View details for ${item.tag}, hunt ${item.id}`}><ChevronRight size={17} /></a>
+            </span>
+          </article>
+        ))}
+      </div>
+      {representative.opGroupId && <small className="tag-result-source">Hunt Planner API 1.1 · opgroup {representative.opGroupId}</small>}
+    </details>
+  );
+}
+
 function SearchPage() {
   const mapRef = useRef(null);
   const layerInstances = useRef(new Map());
@@ -144,7 +183,7 @@ function SearchPage() {
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
   const [selectedHunt, setSelectedHunt] = useState(null);
-  const [groupBy, setGroupBy] = useState('none');
+  const [groupBy, setGroupBy] = useState('tag');
   const [sortBy, setSortBy] = useState('alpha');
   const [hasViewedResults, setHasViewedResults] = useState(false);
   const [catalog, setCatalog] = useState([]);
@@ -530,7 +569,7 @@ function SearchPage() {
             </div>
           </div> : <>
           <div className="results-toolbar">
-            <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">2026 hunt opportunities</h1><p>{apiState === 'loading' ? 'Loading Hunt Planner API 1.1…' : apiState === 'error' ? 'Live data is temporarily unavailable' : `${resultTotal.toLocaleString()} authoritative records · showing first ${opportunities.length}`}</p></div>
+            <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">2026 hunt opportunities</h1><p>{apiState === 'loading' ? 'Loading Hunt Planner API 1.1…' : apiState === 'error' ? 'Live data is temporarily unavailable' : groupBy === 'tag' ? `${resultTotal.toLocaleString()} authoritative opportunities · ${groupedOpportunities.length} tag permissions shown` : `${resultTotal.toLocaleString()} authoritative records · showing first ${opportunities.length}`}</p></div>
             <span className="live-data-badge"><Database size={14} />API 1.1 live</span>
           </div>
 
@@ -581,7 +620,14 @@ function SearchPage() {
           </div>}
 
           <div className="opportunity-list">
-            {groupedOpportunities.map((group) => <section className={`opportunity-group${groupBy === 'tag' ? ' tag-permission-group' : ''}`} key={group.key}>
+            {groupedOpportunities.map((group) => groupBy === 'tag' ? <TagPermissionResult
+              key={group.key}
+              group={group}
+              selectedHunt={selectedHunt}
+              focusHuntArea={focusHuntArea}
+              isSaved={isSaved}
+              toggleSavedHunt={toggleSavedHunt}
+            /> : <section className="opportunity-group" key={group.key}>
               {group.label && <OpportunityGroupHeading group={group} mode={groupBy} />}
               {group.items.map((item) => (
               <article className={selectedHunt === item.id ? 'opportunity-card selected' : 'opportunity-card'} key={item.id}>

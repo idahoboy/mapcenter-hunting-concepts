@@ -323,6 +323,34 @@
 .tag-group-summary span, .tag-group-summary small { padding: .24rem .42rem; border-radius: 999px; color: white; background: rgba(255,255,255,.13); font-size: .52rem; font-weight: 750; }
 .tag-group-summary small { color: rgba(255,255,255,.72); background: transparent; }
 .tag-permission-group .opportunity-card { box-shadow: none; }
+.tag-result-group { overflow: hidden; border: 1px solid #d5ddd7; border-radius: .8rem; background: white; box-shadow: 0 3px 12px rgba(28,47,38,.04); }
+.tag-result-group > summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: .65rem; min-height: 78px; padding: .7rem .8rem; color: var(--ink); cursor: pointer; list-style: none; }
+.tag-result-group > summary::-webkit-details-marker { display: none; }
+.tag-result-group > summary > svg { color: #5b7165; transition: transform .15s ease; }
+.tag-result-group[open] > summary > svg { transform: rotate(180deg); }
+.tag-result-group[open] > summary { border-bottom: 1px solid #e0e5e1; background: #f5f8f5; }
+.tag-result-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: .55rem; color: white; background: var(--forest-800); }
+.tag-result-title { display: grid; gap: .08rem; min-width: 0; }
+.tag-result-title small { color: #a55b32; font-size: .5rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.tag-result-title strong { overflow: hidden; font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
+.tag-result-title > span { color: var(--muted); font-size: .55rem; }
+.tag-result-count { display: grid; min-width: 84px; color: #53645b; font-size: .55rem; text-align: right; }
+.tag-result-count > strong { display: inline; color: var(--ink); font-size: .68rem; }
+.tag-result-count small { margin-top: .08rem; color: var(--muted); font-size: .5rem; }
+.tag-season-list { display: grid; }
+.tag-season-row { position: relative; display: grid; grid-template-columns: minmax(92px, .9fr) minmax(135px, 1.25fr) minmax(90px, .75fr) minmax(100px, 1fr) auto auto; align-items: center; gap: .55rem; min-height: 54px; padding: .5rem .7rem; border-bottom: 1px solid #e5e9e6; color: #506158; font-size: .55rem; }
+.tag-season-row:last-child { border-bottom: 0; }
+.tag-season-row:hover, .tag-season-row.selected { background: #f4f8f5; }
+.tag-season-row.selected { box-shadow: inset 3px 0 0 var(--forest-700); }
+.tag-season-row > span:not(.tag-season-area):not(.tag-season-actions) { display: inline-flex; align-items: center; gap: .25rem; }
+.tag-season-hit { position: absolute; z-index: 1; inset: 0; border: 0; background: transparent; }
+.tag-season-area { display: grid; gap: .08rem; }
+.tag-season-area strong { color: var(--ink); font-size: .64rem; }
+.tag-season-area small { color: var(--muted); font-size: .47rem; }
+.tag-season-availability { padding: .2rem .32rem; border-radius: .3rem; background: #edf1ed; font-weight: 750; white-space: nowrap; }
+.tag-season-actions { position: relative; z-index: 2; display: flex; gap: .2rem; }
+.tag-season-actions button, .tag-season-actions a { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #d1d9d3; border-radius: 50%; color: var(--forest-700); background: white; }
+.tag-result-source { display: block; padding: .38rem .72rem; border-top: 1px solid #e5e9e6; color: #7a857e; background: #fafbfa; font-size: .46rem; }
 .result-view-controls { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: .55rem; margin: 0 0 .75rem; padding: .55rem .65rem; border: 1px solid #d8dfda; border-radius: .7rem; color: var(--muted); background: #f5f7f4; font-size: .72rem; font-weight: 750; }
 .result-view-controls label { display: inline-flex; align-items: center; gap: .35rem; min-width: 0; }
 .result-view-controls label > span { white-space: nowrap; }
@@ -497,6 +525,8 @@
   .result-view-controls select { width: 100%; max-width: none; }
   .tag-group-header { align-items: flex-start; flex-direction: column; gap: .55rem; }
   .tag-group-summary { flex-basis: auto; justify-content: flex-start; }
+  .tag-season-row { grid-template-columns: minmax(80px, .7fr) minmax(120px, 1fr) minmax(90px, .75fr) auto; }
+  .tag-season-row > span:nth-of-type(4), .tag-season-availability { display: none; }
   .search-map-pane { order: 2; flex: 0 0 43vh; width: 100%; }
   .search-results-pane { order: 3; overflow: visible; width: 100%; border-right: 0; }
   .smart-stack { top: .5rem; right: .5rem; max-height: calc(100% - 1rem); }
@@ -512,6 +542,11 @@
   .search-map-pane { height: 48vh; }
   .search-results-pane { padding: .8rem .65rem 1.5rem; }
   .assistant-note > small { display: none; }
+  .tag-result-group > summary { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .tag-result-count { display: none; }
+  .tag-season-row { grid-template-columns: 1fr auto; gap: .3rem; padding: .55rem .6rem; }
+  .tag-season-row > span:not(.tag-season-area):not(.tag-season-actions) { grid-column: 1; }
+  .tag-season-actions { grid-column: 2; grid-row: 1 / span 3; }
   .opportunity-card { grid-template-columns: 82px minmax(0, 1fr); min-height: 158px; }
   .unit-visual > strong { font-size: 2.1rem; }
   .unit-details { padding: .65rem; }
