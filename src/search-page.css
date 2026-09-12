@@ -294,9 +294,11 @@
 .opportunity-group { display: grid; gap: .65rem; }
 .opportunity-group-title { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin: .5rem 0 0; color: var(--ink); font-size: 1rem; letter-spacing: .03em; }
 .opportunity-group-title small { color: var(--muted); font-size: .72rem; white-space: nowrap; }
-.result-view-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .4rem; margin: .4rem 0 .8rem; color: var(--muted); font-size: .78rem; font-weight: 700; }
-.result-view-controls button { border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); padding: .38rem .72rem; font: inherit; cursor: pointer; }
-.result-view-controls button.active { border-color: var(--forest); background: var(--forest); color: white; }
+.result-view-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .55rem; margin: .4rem 0 .8rem; color: var(--muted); font-size: .72rem; font-weight: 750; }
+.result-view-controls label { display: inline-flex; align-items: center; gap: .35rem; min-width: 0; }
+.result-view-controls label > span { white-space: nowrap; }
+.result-view-controls select { min-width: 130px; max-width: 190px; border: 1px solid var(--line); border-radius: 999px; padding: .42rem 1.8rem .42rem .68rem; color: var(--ink); background: var(--surface); font: inherit; cursor: pointer; }
+.result-view-controls select:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent); outline-offset: 2px; }
 .overlap-note { display: grid; gap: .2rem; margin: 0 0 .8rem; padding: .8rem 1rem; border: 1px solid #d7c3a6; border-radius: .8rem; background: #fff8ed; color: #5b4735; }
 .overlap-note strong { color: #7b4d2a; }
 .proximity-note { display: grid; gap: .2rem; margin: 0 0 .8rem; padding: .8rem 1rem; border: 1px solid #b9cec3; border-radius: .8rem; background: #f1f8f4; color: #385448; }
@@ -453,6 +455,9 @@
   .ai-search-box > button { font-size: 0; }
   .filter-strip { justify-content: start; }
   .filter-strip { row-gap: .3rem; }
+  .result-view-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; }
+  .result-view-controls label { display: grid; gap: .2rem; }
+  .result-view-controls select { width: 100%; max-width: none; }
   .search-map-pane { order: 2; flex: 0 0 43vh; width: 100%; }
   .search-results-pane { order: 3; overflow: visible; width: 100%; border-right: 0; }
   .smart-stack { top: .5rem; right: .5rem; max-height: calc(100% - 1rem); }

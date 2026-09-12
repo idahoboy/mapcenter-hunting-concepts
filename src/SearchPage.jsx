@@ -119,7 +119,8 @@ function SearchPage() {
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
   const [selectedHunt, setSelectedHunt] = useState(null);
-  const [resultView, setResultView] = useState('alpha');
+  const [groupBy, setGroupBy] = useState('none');
+  const [sortBy, setSortBy] = useState('alpha');
   const [catalog, setCatalog] = useState([]);
   const [regionLookup, setRegionLookup] = useState(new Map());
   const [regionState, setRegionState] = useState('loading');
@@ -261,27 +262,29 @@ function SearchPage() {
     ? attributeFilteredOpportunities.filter((hunt) => spatialMatchIds.has(hunt.id))
     : attributeFilteredOpportunities, [attributeFilteredOpportunities, spatialMatchIds]);
   const resultTotal = filteredOpportunities.length;
-  const sortedOpportunities = useMemo(() => sortOpportunities(filteredOpportunities, resultView), [filteredOpportunities, resultView]);
+  const sortedOpportunities = useMemo(() => sortOpportunities(filteredOpportunities, sortBy), [filteredOpportunities, sortBy]);
   const groupedOpportunities = useMemo(() => {
     const pageSize = config.dataProviders.huntPlanner.pageSize;
-    if (!['location', 'tag', 'sex', 'species', 'weapon'].includes(resultView)) {
+    if (groupBy === 'none') {
       return [{ key: 'all', label: null, items: sortedOpportunities.slice(0, pageSize) }];
     }
     const groups = new Map();
     sortedOpportunities.forEach((hunt) => {
-      const descriptor = groupDescriptor(hunt, resultView);
+      const descriptor = groupDescriptor(hunt, groupBy);
       if (!groups.has(descriptor.key)) groups.set(descriptor.key, { ...descriptor, items: [] });
       groups.get(descriptor.key).items.push(hunt);
     });
     const visibleGroups = [];
     let visibleRows = 0;
-    for (const group of groups.values()) {
+    const orderedGroups = [...groups.values()];
+    if (sortBy === 'alpha') orderedGroups.sort((a, b) => alphaCompare(a.label, b.label));
+    for (const group of orderedGroups) {
       if (visibleRows >= pageSize) break;
       visibleGroups.push(group);
       visibleRows += group.items.length;
     }
     return visibleGroups;
-  }, [sortedOpportunities, resultView]);
+  }, [sortedOpportunities, groupBy, sortBy]);
   const opportunities = useMemo(() => groupedOpportunities.flatMap((group) => group.items), [groupedOpportunities]);
 
   const rankedLayers = useMemo(
@@ -473,10 +476,28 @@ function SearchPage() {
           </div>
 
           <div className="result-view-controls" aria-label="Result organization">
-            <span>Organize results</span>
-            {[['alpha', 'A–Z'], ['date', 'Date'], ['location', 'Location'], ['tag', 'Tag'], ['sex', 'Sex'], ['species', 'Species'], ['weapon', 'Weapon']].map(([mode, label]) => (
-              <button key={mode} type="button" className={resultView === mode ? 'active' : ''} onClick={() => setResultView(mode)}>{label}</button>
-            ))}
+            <label>
+              <span>Group by</span>
+              <select value={groupBy} onChange={(event) => setGroupBy(event.target.value)}>
+                <option value="none">None</option>
+                <option value="location">Hunt area</option>
+                <option value="tag">Tag permission</option>
+                <option value="sex">Sex / ornament</option>
+                <option value="species">Species</option>
+                <option value="weapon">Weapon / method</option>
+              </select>
+            </label>
+            <label>
+              <span>Sort by</span>
+              <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+                <option value="alpha">Area / unit A–Z</option>
+                <option value="date">Opening date</option>
+                <option value="tag">Tag A–Z</option>
+                <option value="sex">Sex / ornament A–Z</option>
+                <option value="species">Species A–Z</option>
+                <option value="weapon">Weapon / method A–Z</option>
+              </select>
+            </label>
           </div>
         </section>
 
