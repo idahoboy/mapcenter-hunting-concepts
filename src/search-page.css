@@ -407,6 +407,7 @@
 .area-result-count small { color: var(--muted); font-size: .49rem; }
 .area-result-context { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .45rem .75rem; border-bottom: 1px solid #e5e9e6; color: #64736b; background: #fafbfa; font-size: .54rem; }
 .area-result-context span, .area-result-context button { display: inline-flex; align-items: center; gap: .28rem; }
+.area-result-context span strong { color: #304a3e; font-size: inherit; }
 .area-result-context button { min-height: 30px; padding: 0 .55rem; border: 1px solid #cbd6ce; border-radius: 999px; color: #2e644a; background: white; font-size: .54rem; font-weight: 800; }
 .area-tag-list { display: grid; }
 .area-tag-row { display: grid; grid-template-columns: minmax(125px, .65fr) minmax(0, 1.7fr); gap: .65rem; padding: .65rem .75rem; border-bottom: 1px solid #e5e9e6; }

@@ -65,9 +65,22 @@ const filterOptions = {
 };
 
 const alphaCompare = (a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true, sensitivity: 'base' });
-const dateValue = (hunt) => {
-  const [month, day, year] = String(hunt.open ?? '').split('/').map(Number);
-  return month && day && year ? new Date(2000 + year, month - 1, day).getTime() : Number.MAX_SAFE_INTEGER;
+const parseHuntDate = (value) => {
+  const [month, day, rawYear] = String(value ?? '').split('/').map(Number);
+  if (!month || !day || !rawYear) return null;
+  return new Date(rawYear < 100 ? 2000 + rawYear : rawYear, month - 1, day);
+};
+const dateValue = (hunt) => parseHuntDate(hunt.open)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+const areaSeasonSpan = (hunts) => {
+  const opens = hunts.map((hunt) => parseHuntDate(hunt.open)).filter(Boolean).sort((a, b) => a - b);
+  const closes = hunts.map((hunt) => parseHuntDate(hunt.close)).filter(Boolean).sort((a, b) => a - b);
+  if (!opens.length || !closes.length) return 'Dates unavailable';
+  const start = opens[0];
+  const end = closes[closes.length - 1];
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const startLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) }).format(start);
+  const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(end);
+  return `${startLabel}–${endLabel}`;
 };
 const sortOpportunities = (rows, mode) => [...rows].sort((a, b) => {
   if (mode === 'date') return dateValue(a) - dateValue(b) || alphaCompare(a.areaLabel || a.unit, b.areaLabel || b.unit);
@@ -134,7 +147,7 @@ function AreaResult({ group, selectedHunt, focusHuntArea, isSaved, toggleSavedHu
   });
   const tags = [...tagGroups.values()].sort((a, b) => alphaCompare(a.label, b.label));
   const regions = representative.unit ? regionLookup.get(representative.unit) ?? [] : [];
-  const openingDates = [...group.items].sort((a, b) => dateValue(a) - dateValue(b));
+  const seasonSpan = areaSeasonSpan(group.items);
   return (
     <details className={group.items.some((item) => item.id === selectedHunt) ? 'area-result-group selected' : 'area-result-group'}>
       <summary>
@@ -144,7 +157,7 @@ function AreaResult({ group, selectedHunt, focusHuntArea, isSaved, toggleSavedHu
         <ChevronDown size={18} aria-hidden="true" />
       </summary>
       <div className="area-result-context">
-        <span><CalendarDays size={14} aria-hidden="true" />{openingDates[0]?.dates || 'Dates unavailable'}</span>
+        <span><CalendarDays size={14} aria-hidden="true" /><strong>Season span</strong>{seasonSpan}</span>
         <button type="button" onClick={() => focusHuntArea(representative)}><MapPin size={14} aria-hidden="true" />Highlight and zoom</button>
       </div>
       <div className="area-tag-list">
