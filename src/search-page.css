@@ -391,6 +391,7 @@
 .tag-season-actions button, .tag-season-actions a { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #d1d9d3; border-radius: 50%; color: var(--forest-700); background: white; }
 .tag-result-source { display: block; padding: .38rem .72rem; border-top: 1px solid #e5e9e6; color: #7a857e; background: #fafbfa; font-size: .46rem; }
 .area-result-group { overflow: hidden; border: 1px solid #d5ddd7; border-radius: .8rem; background: white; box-shadow: 0 3px 12px rgba(28,47,38,.04); }
+.area-result-group.selected { border-color: #60806d; box-shadow: inset 3px 0 0 var(--forest-700), 0 3px 12px rgba(28,47,38,.06); }
 .area-result-group > summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: .7rem; min-height: 80px; padding: .65rem .8rem; cursor: pointer; list-style: none; }
 .area-result-group > summary::-webkit-details-marker { display: none; }
 .area-result-group > summary > svg { color: #5b7165; transition: transform .15s ease; }
@@ -416,7 +417,6 @@
 .area-tag-row > div:first-child small { color: var(--muted); font-size: .46rem; }
 .area-season-options { display: grid; gap: .28rem; }
 .area-season-option { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; min-height: 38px; border: 1px solid #e0e6e1; border-radius: .45rem; background: #fbfcfb; }
-.area-season-option.selected { border-color: #60806d; box-shadow: inset 3px 0 0 var(--forest-700); }
 .area-season-focus { display: grid; gap: .06rem; min-width: 0; padding: .38rem .5rem; border: 0; color: var(--ink); background: transparent; text-align: left; }
 .area-season-focus strong { font-size: .54rem; }
 .area-season-focus span { overflow: hidden; color: var(--muted); font-size: .48rem; text-overflow: ellipsis; white-space: nowrap; }

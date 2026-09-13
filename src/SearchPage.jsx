@@ -136,7 +136,7 @@ function AreaResult({ group, selectedHunt, focusHuntArea, isSaved, toggleSavedHu
   const regions = representative.unit ? regionLookup.get(representative.unit) ?? [] : [];
   const openingDates = [...group.items].sort((a, b) => dateValue(a) - dateValue(b));
   return (
-    <details className="area-result-group">
+    <details className={group.items.some((item) => item.id === selectedHunt) ? 'area-result-group selected' : 'area-result-group'}>
       <summary>
         <span className="area-result-number">{representative.unit || 'ID'}</span>
         <span className="area-result-title"><small>Hunt area</small><strong>{representative.areaLabel || `Unit ${representative.unit}`}</strong><span>{regions.join(' · ') || 'Idaho'}</span></span>
@@ -153,10 +153,10 @@ function AreaResult({ group, selectedHunt, focusHuntArea, isSaved, toggleSavedHu
             <div><span>Tag permission</span><strong>{tag.label}</strong><small>{tag.opGroupId ? `opgroup ${tag.opGroupId} · ` : ''}{tag.items.length} season {tag.items.length === 1 ? 'option' : 'options'}</small></div>
             <div className="area-season-options">
               {tag.items.sort((a, b) => dateValue(a) - dateValue(b)).map((item) => (
-                <article className={selectedHunt === item.id ? 'area-season-option selected' : 'area-season-option'} key={item.id}>
-                  <button type="button" className="area-season-focus" onClick={() => focusHuntArea(item)}>
+                <article className="area-season-option" key={item.id}>
+                  <div className="area-season-focus">
                     <strong>{item.dates}</strong><span>{item.method} · {item.sex}</span>
-                  </button>
+                  </div>
                   <button type="button" className="area-season-save" onClick={() => toggleSavedHunt(item.id)} aria-pressed={isSaved(item.id)} aria-label={`${isSaved(item.id) ? 'Remove' : 'Save'} hunt ${item.id}`}>
                     {isSaved(item.id) ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
                   </button>
