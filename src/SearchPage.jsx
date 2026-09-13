@@ -27,7 +27,7 @@ import LocationSummaryPopup from './LocationSummaryPopup.jsx';
 import { useMapIdentify } from './useMapIdentify.js';
 import { useHuntPlan } from './useHuntPlan.js';
 import { fetchCatalog } from './huntPlannerApi.js';
-import { filterOpportunities, filterOverlappingOpportunities } from './opportunityFilters.js';
+import { filterOpportunities, filterOverlappingOpportunities, matchesDateRange } from './opportunityFilters.js';
 import { fetchRegionLookup, REGION_NAMES } from './regionContext.js';
 import { createFallbackOpportunityPlan, interpretOpportunitySearch, resolveCatalogSearch } from './aiOpportunitySearch.js';
 import MatchExplanation from './MatchExplanation.jsx';
@@ -48,6 +48,14 @@ const initialFilters = {
   region: [],
   sex: [],
 };
+
+const monthOptions = [
+  { label: 'August', month: 8 },
+  { label: 'September', month: 9 },
+  { label: 'October', month: 10 },
+  { label: 'November', month: 11 },
+  { label: 'December', month: 12 },
+];
 
 const filterOptions = {
   species: { label: 'Species', options: ['Elk', 'Deer', 'Pronghorn', 'Black Bear', 'Moose'] },
@@ -101,6 +109,62 @@ function MultiSelectFilter({ label, options, selected, onChange }) {
             />
             <span>{option}</span>
           </label>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function PrimaryDecision({ number, question, children }) {
+  return (
+    <div className="primary-decision">
+      <span>{number}</span>
+      <div><small>{question}</small>{children}</div>
+    </div>
+  );
+}
+
+function AreaResult({ group, selectedHunt, focusHuntArea, isSaved, toggleSavedHunt, regionLookup }) {
+  const representative = group.items[0];
+  const tagGroups = new Map();
+  group.items.forEach((hunt) => {
+    const key = hunt.opGroupId ? `opgroup:${hunt.opGroupId}` : `tag:${hunt.tag}`;
+    if (!tagGroups.has(key)) tagGroups.set(key, { key, label: hunt.tag || 'Unnamed tag', opGroupId: hunt.opGroupId, items: [] });
+    tagGroups.get(key).items.push(hunt);
+  });
+  const tags = [...tagGroups.values()].sort((a, b) => alphaCompare(a.label, b.label));
+  const regions = representative.unit ? regionLookup.get(representative.unit) ?? [] : [];
+  const openingDates = [...group.items].sort((a, b) => dateValue(a) - dateValue(b));
+  return (
+    <details className="area-result-group">
+      <summary>
+        <span className="area-result-number">{representative.unit || 'ID'}</span>
+        <span className="area-result-title"><small>Hunt area</small><strong>{representative.areaLabel || `Unit ${representative.unit}`}</strong><span>{regions.join(' · ') || 'Idaho'}</span></span>
+        <span className="area-result-count"><strong>{tags.length}</strong> tag {tags.length === 1 ? 'permission' : 'permissions'}<small>{group.items.length} season {group.items.length === 1 ? 'option' : 'options'}</small></span>
+        <ChevronDown size={18} aria-hidden="true" />
+      </summary>
+      <div className="area-result-context">
+        <span><CalendarDays size={14} aria-hidden="true" />{openingDates[0]?.dates || 'Dates unavailable'}</span>
+        <button type="button" onClick={() => focusHuntArea(representative)}><MapPin size={14} aria-hidden="true" />Highlight and zoom</button>
+      </div>
+      <div className="area-tag-list">
+        {tags.map((tag) => (
+          <section key={tag.key} className="area-tag-row">
+            <div><span>Tag permission</span><strong>{tag.label}</strong><small>{tag.opGroupId ? `opgroup ${tag.opGroupId} · ` : ''}{tag.items.length} season {tag.items.length === 1 ? 'option' : 'options'}</small></div>
+            <div className="area-season-options">
+              {tag.items.sort((a, b) => dateValue(a) - dateValue(b)).map((item) => (
+                <article className={selectedHunt === item.id ? 'area-season-option selected' : 'area-season-option'} key={item.id}>
+                  <button type="button" className="area-season-focus" onClick={() => focusHuntArea(item)}>
+                    <strong>{item.dates}</strong><span>{item.method} · {item.sex}</span>
+                  </button>
+                  <button type="button" className="area-season-save" onClick={() => toggleSavedHunt(item.id)} aria-pressed={isSaved(item.id)} aria-label={`${isSaved(item.id) ? 'Remove' : 'Save'} hunt ${item.id}`}>
+                    {isSaved(item.id) ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+                  </button>
+                  <a href={`/hunt/${item.id}`} aria-label={`View details for hunt ${item.id}`}><ChevronRight size={16} /></a>
+                </article>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
     </details>
@@ -183,8 +247,9 @@ function SearchPage() {
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
   const [selectedHunt, setSelectedHunt] = useState(null);
-  const [groupBy, setGroupBy] = useState('tag');
+  const [groupBy, setGroupBy] = useState('location');
   const [sortBy, setSortBy] = useState('alpha');
+  const [selectedMonths, setSelectedMonths] = useState([]);
   const [hasViewedResults, setHasViewedResults] = useState(false);
   const [catalog, setCatalog] = useState([]);
   const [regionLookup, setRegionLookup] = useState(new Map());
@@ -278,9 +343,15 @@ function SearchPage() {
   const attributeFilteredOpportunities = useMemo(
     () => {
       const rows = filterOpportunities(catalog, { search: submittedQuery, filters, regionLookup, dateRange: aiPlan?.dateRange });
-      return overlapQuery ? filterOverlappingOpportunities(rows) : rows;
+      const monthFiltered = selectedMonths.length
+        ? rows.filter((hunt) => selectedMonths.some((month) => matchesDateRange(hunt, {
+          start: `2026-${String(month).padStart(2, '0')}-01`,
+          end: `2026-${String(month).padStart(2, '0')}-${new Date(2026, month, 0).getDate()}`,
+        })))
+        : rows;
+      return overlapQuery ? filterOverlappingOpportunities(monthFiltered) : monthFiltered;
     },
-    [catalog, submittedQuery, filters, regionLookup, aiPlan, overlapQuery],
+    [catalog, submittedQuery, filters, regionLookup, aiPlan, overlapQuery, selectedMonths],
   );
   useEffect(() => {
     let active = true;
@@ -327,6 +398,7 @@ function SearchPage() {
     ? attributeFilteredOpportunities.filter((hunt) => spatialMatchIds.has(hunt.id))
     : attributeFilteredOpportunities, [attributeFilteredOpportunities, spatialMatchIds]);
   const resultTotal = filteredOpportunities.length;
+  const resultAreaTotal = useMemo(() => new Set(filteredOpportunities.map((hunt) => hunt.areaId ? `area:${hunt.areaId}` : `unit:${hunt.unit || hunt.areaLabel}`)).size, [filteredOpportunities]);
   const sortedOpportunities = useMemo(() => sortOpportunities(filteredOpportunities, sortBy), [filteredOpportunities, sortBy]);
   const groupedOpportunities = useMemo(() => {
     const pageSize = config.dataProviders.huntPlanner.pageSize;
@@ -339,18 +411,17 @@ function SearchPage() {
       if (!groups.has(descriptor.key)) groups.set(descriptor.key, { ...descriptor, items: [] });
       groups.get(descriptor.key).items.push(hunt);
     });
-    const visibleGroups = [];
-    let visibleRows = 0;
     const orderedGroups = [...groups.values()];
     if (sortBy === 'alpha') orderedGroups.sort((a, b) => alphaCompare(a.label, b.label));
-    for (const group of orderedGroups) {
-      if (visibleRows >= pageSize) break;
-      visibleGroups.push(group);
-      visibleRows += group.items.length;
-    }
-    return visibleGroups;
+    return orderedGroups.slice(0, pageSize);
   }, [sortedOpportunities, groupBy, sortBy]);
   const opportunities = useMemo(() => groupedOpportunities.flatMap((group) => group.items), [groupedOpportunities]);
+  const receipt = useMemo(() => [
+    { label: 'What', value: filters.species.length ? filters.species.join(', ') : 'Any big game' },
+    { label: 'Where', value: aiPlan?.location?.label || (filters.region.length ? filters.region.join(', ') : 'Anywhere in Idaho') },
+    { label: 'When', value: aiPlan?.dateRange ? `${aiPlan.dateRange.start}–${aiPlan.dateRange.end}` : selectedMonths.length ? monthOptions.filter((item) => selectedMonths.includes(item.month)).map((item) => item.label).join(', ') : 'Any open date' },
+    { label: 'Hunt type', value: filters.huntType.length ? filters.huntType.join(', ') : 'General or controlled' },
+  ], [filters.species, filters.region, filters.huntType, aiPlan, selectedMonths]);
 
   const rankedLayers = useMemo(
     () => deriveLayerStack(allLayers, query, filters),
@@ -536,22 +607,38 @@ function SearchPage() {
               <WandSparkles size={18} />{isOptimizing ? 'Searching…' : 'Search & map'}
             </button>
           </div>
-          <div className="filter-strip" aria-label="Search filters">
-            {Object.entries(activeFilterOptions).map(([key, definition]) => (
-              <MultiSelectFilter
-                key={key}
-                label={definition.label}
-                options={definition.options}
-                selected={filters[key]}
-                onChange={(values) => updateFilter(key, values)}
-              />
-            ))}
+          <div className="primary-decisions" aria-label="Primary search decisions">
+            <PrimaryDecision number="1" question="What">
+              <MultiSelectFilter label="Any big game" options={activeFilterOptions.species.options} selected={filters.species} onChange={(values) => updateFilter('species', values)} />
+            </PrimaryDecision>
+            <PrimaryDecision number="2" question="Where">
+              <MultiSelectFilter label="Anywhere in Idaho" options={activeFilterOptions.region.options} selected={filters.region} onChange={(values) => updateFilter('region', values)} />
+            </PrimaryDecision>
+            <PrimaryDecision number="3" question="When">
+              <MultiSelectFilter label="Any open date" options={monthOptions.map((item) => item.label)} selected={monthOptions.filter((item) => selectedMonths.includes(item.month)).map((item) => item.label)} onChange={(values) => setSelectedMonths(monthOptions.filter((item) => values.includes(item.label)).map((item) => item.month))} />
+            </PrimaryDecision>
+            <PrimaryDecision number="4" question="Hunt type">
+              <MultiSelectFilter label="General or controlled" options={activeFilterOptions.huntType.options} selected={filters.huntType} onChange={(values) => updateFilter('huntType', values)} />
+            </PrimaryDecision>
+          </div>
+
+          <details className="refine-search">
+            <summary><Filter size={15} aria-hidden="true" />Refine with weapon, sex or ornament<ChevronDown size={15} aria-hidden="true" /></summary>
+            <div className="filter-strip" aria-label="Additional search refinements">
+              <MultiSelectFilter label="Weapon / method" options={activeFilterOptions.season.options} selected={filters.season} onChange={(values) => updateFilter('season', values)} />
+              <MultiSelectFilter label="Sex / ornament" options={activeFilterOptions.sex.options} selected={filters.sex} onChange={(values) => updateFilter('sex', values)} />
+            </div>
+          </details>
+
+          <div className="search-receipt" aria-label="Current search" aria-live="polite">
+            <span className="search-receipt-label">Your search</span>
+            {receipt.map((item) => <span key={item.label}><small>{item.label}</small><strong>{item.value}</strong></span>)}
           </div>
 
           <div className="search-gate-actions">
-            <p><strong>{apiState === 'loading' ? 'Checking live opportunities…' : `${resultTotal.toLocaleString()} matches ready`}</strong><span>Choose as many filters as you need before opening the results.</span></p>
+            <p><strong>{apiState === 'loading' ? 'Checking live opportunities…' : `${resultAreaTotal.toLocaleString()} hunt areas ready`}</strong><span>{resultTotal.toLocaleString()} live season opportunities match this search.</span></p>
             <button type="button" onClick={revealFilteredResults} disabled={apiState === 'loading'} aria-controls="search-results">
-              {hasViewedResults ? `Update ${resultTotal.toLocaleString()} results` : `Show ${resultTotal.toLocaleString()} opportunities`}<ChevronRight size={17} />
+              {hasViewedResults ? `Update ${resultAreaTotal.toLocaleString()} areas` : `Explore ${resultAreaTotal.toLocaleString()} areas`}<ChevronRight size={17} />
             </button>
           </div>
 
@@ -559,17 +646,12 @@ function SearchPage() {
 
         <section className="search-results-pane" id="search-results" aria-labelledby="results-title">
           {!hasViewedResults ? <div className="pre-results-panel">
-            <span>Start with what matters</span>
-            <h1 id="results-title">Filter before you browse</h1>
-            <p>Select species, season, hunt type, region, and sex or ornament above. The match count updates as you narrow the live Hunt Planner catalog.</p>
-            <div className="pre-results-steps" aria-label="Opportunity search steps">
-              <div><b>1</b><span><strong>Describe or select</strong><small>Use plain language or the filters.</small></span></div>
-              <div><b>2</b><span><strong>Review the count</strong><small>Know the result size before opening it.</small></span></div>
-              <div><b>3</b><span><strong>Explore the map</strong><small>Select a result to highlight its area.</small></span></div>
-            </div>
+            <span>Opportunity Explorer</span>
+            <h1 id="results-title">Start with a place—not a record.</h1>
+            <p>Use the four decisions above or describe what you want. We’ll show matching hunt areas first, then reveal the tag permissions and seasons available there.</p>
           </div> : <>
           <div className="results-toolbar">
-            <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">2026 hunt opportunities</h1><p>{apiState === 'loading' ? 'Loading Hunt Planner API 1.1…' : apiState === 'error' ? 'Live data is temporarily unavailable' : groupBy === 'tag' ? `${resultTotal.toLocaleString()} authoritative opportunities · ${groupedOpportunities.length} tag permissions shown` : `${resultTotal.toLocaleString()} authoritative records · showing first ${opportunities.length}`}</p></div>
+            <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">2026 hunt opportunities</h1><p>{apiState === 'loading' ? 'Loading Hunt Planner API 1.1…' : apiState === 'error' ? 'Live data is temporarily unavailable' : groupBy === 'location' ? `${resultAreaTotal.toLocaleString()} matching hunt areas · showing first ${groupedOpportunities.length}` : groupBy === 'tag' ? `${resultTotal.toLocaleString()} authoritative opportunities · ${groupedOpportunities.length} tag permissions shown` : `${resultTotal.toLocaleString()} authoritative records · showing first ${opportunities.length}`}</p></div>
             <span className="live-data-badge"><Database size={14} />API 1.1 live</span>
           </div>
 
@@ -620,7 +702,15 @@ function SearchPage() {
           </div>}
 
           <div className="opportunity-list">
-            {groupedOpportunities.map((group) => groupBy === 'tag' ? <TagPermissionResult
+            {groupedOpportunities.map((group) => groupBy === 'location' ? <AreaResult
+              key={group.key}
+              group={group}
+              selectedHunt={selectedHunt}
+              focusHuntArea={focusHuntArea}
+              isSaved={isSaved}
+              toggleSavedHunt={toggleSavedHunt}
+              regionLookup={regionLookup}
+            /> : groupBy === 'tag' ? <TagPermissionResult
               key={group.key}
               group={group}
               selectedHunt={selectedHunt}
