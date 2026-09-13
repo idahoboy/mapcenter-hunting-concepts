@@ -180,7 +180,7 @@
 
 .primary-decisions {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: .45rem;
   width: min(100%, 1080px);
   margin: .55rem auto 0;
@@ -205,11 +205,13 @@
 .primary-decision .multi-filter > summary svg { margin-left: auto; flex: none; }
 .primary-decision .multi-filter-menu { top: calc(100% + .55rem); }
 
-.refine-search { width: min(100%, 1080px); margin: .45rem auto 0; }
-.refine-search > summary { display: inline-flex; align-items: center; gap: .28rem; color: #52665b; cursor: pointer; font-size: .56rem; font-weight: 800; list-style: none; }
-.refine-search > summary::-webkit-details-marker { display: none; }
-.refine-search[open] > summary > svg:last-child { transform: rotate(180deg); }
-.refine-search .filter-strip { justify-content: flex-start; margin: .35rem 0 0; padding: .45rem; border-radius: .55rem; background: #f4f7f4; }
+.refine-search { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .75rem; width: min(100%, 1080px); margin: .45rem auto 0; padding: .42rem .55rem; border: 1px solid #e0d3c7; border-radius: .6rem; background: #fbf5ef; }
+.refine-search-label { display: inline-flex; align-items: center; gap: .4rem; color: #8f4e2d; }
+.refine-search-label > span { display: grid; }
+.refine-search-label strong { color: #67422e; font-size: .58rem; }
+.refine-search-label small { color: #89766a; font-size: .45rem; white-space: nowrap; }
+.refine-search .filter-strip { justify-content: flex-end; margin: 0; }
+.refine-search .multi-filter > summary { border-color: #d8c8ba; }
 
 .search-receipt { display: grid; grid-template-columns: auto repeat(4, minmax(0, 1fr)); gap: .65rem; align-items: center; width: min(100%, 1080px); margin: .5rem auto 0; padding: .45rem .6rem; border-left: 3px solid var(--orange); background: #f8f4ef; }
 .search-receipt-label { color: #945632; font-size: .5rem; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
@@ -589,6 +591,8 @@
   .filter-strip { justify-content: start; }
   .filter-strip { row-gap: .3rem; }
   .primary-decisions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .refine-search { grid-template-columns: 1fr; gap: .35rem; }
+  .refine-search .filter-strip { justify-content: flex-start; }
   .search-receipt { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .search-receipt-label { grid-column: 1 / -1; }
   .search-gate-actions { align-items: stretch; flex-direction: column; gap: .45rem; }

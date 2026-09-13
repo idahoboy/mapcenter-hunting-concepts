@@ -107,9 +107,33 @@ const groupDescriptor = (hunt, mode) => {
 };
 
 function MultiSelectFilter({ label, options, selected, onChange }) {
+  const detailsRef = useRef(null);
   const summary = selected.length === 0 ? label : selected.length === 1 ? selected[0] : `${label} · ${selected.length}`;
+  useEffect(() => {
+    const closeWhenOutside = (event) => {
+      if (detailsRef.current?.open && !detailsRef.current.contains(event.target)) detailsRef.current.removeAttribute('open');
+    };
+    const closeWithEscape = (event) => {
+      if (event.key === 'Escape' && detailsRef.current?.open) {
+        detailsRef.current.removeAttribute('open');
+        detailsRef.current.querySelector('summary')?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', closeWhenOutside);
+    document.addEventListener('keydown', closeWithEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeWhenOutside);
+      document.removeEventListener('keydown', closeWithEscape);
+    };
+  }, []);
+  const closeOtherFilters = () => {
+    if (!detailsRef.current?.open) return;
+    document.querySelectorAll('details.multi-filter[open]').forEach((element) => {
+      if (element !== detailsRef.current) element.removeAttribute('open');
+    });
+  };
   return (
-    <details className="multi-filter">
+    <details className="multi-filter" ref={detailsRef} onToggle={closeOtherFilters}>
       <summary>{summary}<ChevronDown size={15} aria-hidden="true" /></summary>
       <div className="multi-filter-menu" aria-label={`${label} options`}>
         <div><strong>{label}</strong>{selected.length > 0 && <button type="button" onClick={() => onChange([])}>Clear</button>}</div>
@@ -256,6 +280,7 @@ function SearchPage() {
   const selectionGraphics = useRef([]);
   const searchLocationGraphic = useRef(null);
   const proximityGraphic = useRef(null);
+  const resultExtentRequest = useRef(0);
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
@@ -277,6 +302,7 @@ function SearchPage() {
   const [spatialMatchIds, setSpatialMatchIds] = useState(null);
   const [proximityState, setProximityState] = useState('idle');
   const [status, setStatus] = useState('Search assistant ready.');
+  const [mapReadyVersion, setMapReadyVersion] = useState(0);
   const { summary: locationSummary, attach: attachIdentify, close: closeIdentify, zoomTo: zoomToIdentify } = useMapIdentify(layerInstances, allLayers);
   const { isSaved, toggle: toggleSavedHunt } = useHuntPlan();
   const activeFilterOptions = useMemo(() => ({
@@ -433,7 +459,7 @@ function SearchPage() {
     { label: 'What', value: filters.species.length ? filters.species.join(', ') : 'Any big game' },
     { label: 'Where', value: aiPlan?.location?.label || (filters.region.length ? filters.region.join(', ') : 'Anywhere in Idaho') },
     { label: 'When', value: aiPlan?.dateRange ? `${aiPlan.dateRange.start}–${aiPlan.dateRange.end}` : selectedMonths.length ? monthOptions.filter((item) => selectedMonths.includes(item.month)).map((item) => item.label).join(', ') : 'Any open date' },
-    { label: 'Hunt type', value: filters.huntType.length ? filters.huntType.join(', ') : 'General or controlled' },
+    { label: 'Tag type', value: filters.huntType.length ? filters.huntType.join(', ') : 'General or controlled' },
   ], [filters.species, filters.region, filters.huntType, aiPlan, selectedMonths]);
 
   const rankedLayers = useMemo(
@@ -456,6 +482,43 @@ function SearchPage() {
     });
   }, [composedLayers]);
 
+  useEffect(() => {
+    if (!mapReadyVersion || apiState !== 'ready') return undefined;
+    const requestId = ++resultExtentRequest.current;
+    const timer = window.setTimeout(async () => {
+      const view = mapRef.current?.view;
+      if (!view || !filteredOpportunities.length) return;
+      const areaIds = [...new Set(filteredOpportunities.map((hunt) => hunt.areaId).filter(Boolean))];
+      const units = [...new Set(filteredOpportunities.filter((hunt) => !hunt.areaId).map((hunt) => hunt.unit).filter(Boolean))];
+      const extentRequests = [];
+      if (areaIds.length) {
+        const sample = filteredOpportunities.find((hunt) => hunt.areaId && hunt.map?.kind === 'hunt-area');
+        const areaLayer = huntAreaLayer.current ??= new FeatureLayer({ url: sample?.map?.url || config.dataProviders.huntPlanner.huntAreaLayerUrl, outFields: ['ID'], popupEnabled: false });
+        extentRequests.push(areaLayer.queryExtent({ where: `ID IN (${areaIds.join(',')})`, outSpatialReference: view.spatialReference }));
+      }
+      if (units.length) {
+        const unitLayer = layerInstances.current.get('game-units');
+        if (unitLayer) extentRequests.push(unitLayer.queryExtent({ where: buildUnitWhereClause(units), outSpatialReference: view.spatialReference }));
+      }
+      try {
+        const responses = await Promise.all(extentRequests);
+        if (requestId !== resultExtentRequest.current) return;
+        const extents = responses.map((response) => response.extent).filter(Boolean);
+        if (!extents.length) return;
+        const combined = extents.slice(1).reduce((extent, next) => extent.union(next), extents[0].clone());
+        highlightHandle.current?.remove();
+        if (selectionGraphics.current.length) view.graphics.removeMany(selectionGraphics.current);
+        selectionGraphics.current = [];
+        setSelectedHunt(null);
+        await view.goTo(combined.expand(1.12), { duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 500 });
+        setStatus(`Map framed to ${resultAreaTotal.toLocaleString()} matching hunt areas.`);
+      } catch {
+        if (requestId === resultExtentRequest.current) setStatus('Results were applied; their combined map extent is temporarily unavailable.');
+      }
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [filteredOpportunities, resultAreaTotal, mapReadyVersion, apiState]);
+
   const handleMapReady = (event) => {
     const mapElement = event.target;
     if (!mapElement?.map || layerInstances.current.size) return;
@@ -469,6 +532,7 @@ function SearchPage() {
       description: 'A synchronized map of units and GIS services derived from the current search criteria.',
     };
     attachIdentify(mapElement.view);
+    setMapReadyVersion((value) => value + 1);
     setStatus(`${composedLayers.size} services selected from the current search.`);
   };
 
@@ -630,18 +694,16 @@ function SearchPage() {
             <PrimaryDecision number="3" question="When">
               <MultiSelectFilter label="Any open date" options={monthOptions.map((item) => item.label)} selected={monthOptions.filter((item) => selectedMonths.includes(item.month)).map((item) => item.label)} onChange={(values) => setSelectedMonths(monthOptions.filter((item) => values.includes(item.label)).map((item) => item.month))} />
             </PrimaryDecision>
-            <PrimaryDecision number="4" question="Hunt type">
-              <MultiSelectFilter label="General or controlled" options={activeFilterOptions.huntType.options} selected={filters.huntType} onChange={(values) => updateFilter('huntType', values)} />
-            </PrimaryDecision>
           </div>
 
-          <details className="refine-search">
-            <summary><Filter size={15} aria-hidden="true" />Refine with weapon, sex or ornament<ChevronDown size={15} aria-hidden="true" /></summary>
+          <div className="refine-search" aria-label="Additional hunt refinements">
+            <span className="refine-search-label"><Filter size={15} aria-hidden="true" /><span><strong>Refine results</strong><small>Tag type, weapon, sex or ornament</small></span></span>
             <div className="filter-strip" aria-label="Additional search refinements">
+              <MultiSelectFilter label="Tag type: general or controlled" options={activeFilterOptions.huntType.options} selected={filters.huntType} onChange={(values) => updateFilter('huntType', values)} />
               <MultiSelectFilter label="Weapon / method" options={activeFilterOptions.season.options} selected={filters.season} onChange={(values) => updateFilter('season', values)} />
               <MultiSelectFilter label="Sex / ornament" options={activeFilterOptions.sex.options} selected={filters.sex} onChange={(values) => updateFilter('sex', values)} />
             </div>
-          </details>
+          </div>
 
           <div className="search-receipt" aria-label="Current search" aria-live="polite">
             <span className="search-receipt-label">Your search</span>
@@ -661,7 +723,7 @@ function SearchPage() {
           {!hasViewedResults ? <div className="pre-results-panel">
             <span>Opportunity Explorer</span>
             <h1 id="results-title">Start with a place—not a record.</h1>
-            <p>Use the four decisions above or describe what you want. We’ll show matching hunt areas first, then reveal the tag permissions and seasons available there.</p>
+            <p>Choose what, where, and when—or describe what you want. Tag type and other refinements remain easy to reach without crowding the starting point.</p>
           </div> : <>
           <div className="results-toolbar">
             <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">2026 hunt opportunities</h1><p>{apiState === 'loading' ? 'Loading Hunt Planner API 1.1…' : apiState === 'error' ? 'Live data is temporarily unavailable' : groupBy === 'location' ? `${resultAreaTotal.toLocaleString()} matching hunt areas · showing first ${groupedOpportunities.length}` : groupBy === 'tag' ? `${resultTotal.toLocaleString()} authoritative opportunities · ${groupedOpportunities.length} tag permissions shown` : `${resultTotal.toLocaleString()} authoritative records · showing first ${opportunities.length}`}</p></div>
