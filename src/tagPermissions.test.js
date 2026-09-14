@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { buildTagPermissions, matchesTagPermission } from './tagPermissions.js';
 
 const hunts = [
-  { id: '1', tag: 'Regular Deer Tag', opGroupId: 20, species: 'Mule Deer', areaId: 101 },
-  { id: '2', tag: 'Regular Deer Tag', opGroupId: 20, species: 'White-tailed Deer', areaId: 102 },
-  { id: '3', tag: 'Elk A Tag', opGroupId: 30, species: 'Elk', unit: '10' },
+  { id: '1', tag: 'Regular Deer Tag', opGroupId: 20, species: 'Mule Deer', kind: 'General season', areaId: 101 },
+  { id: '2', tag: 'Regular Deer Tag', opGroupId: 20, species: 'White-tailed Deer', kind: 'General season', areaId: 102 },
+  { id: '3', tag: 'Elk Controlled Hunt 2001', opGroupId: 30, species: 'Elk', kind: 'Controlled hunt', unit: '10' },
 ];
 
 describe('tag permissions', () => {
@@ -15,6 +15,7 @@ describe('tag permissions', () => {
       opportunityCount: 2,
       areaCount: 2,
       species: ['Mule Deer', 'White-tailed Deer'],
+      tagTypes: ['General season'],
     });
   });
 

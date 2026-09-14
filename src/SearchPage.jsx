@@ -290,6 +290,7 @@ function SearchPage() {
   const [journeyMode, setJourneyMode] = useState('opportunity');
   const [selectedTagPermission, setSelectedTagPermission] = useState('');
   const [tagPermissionQuery, setTagPermissionQuery] = useState('');
+  const [tagPermissionType, setTagPermissionType] = useState('all');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
   const [selectedHunt, setSelectedHunt] = useState(null);
@@ -322,13 +323,16 @@ function SearchPage() {
   );
   const visibleTagPermissions = useMemo(() => {
     const search = tagPermissionQuery.trim().toLowerCase();
+    const typeMatches = tagPermissionType === 'all'
+      ? tagPermissions
+      : tagPermissions.filter((permission) => permission.tagTypes.includes(tagPermissionType));
     const matches = search
-      ? tagPermissions.filter((permission) => [
+      ? typeMatches.filter((permission) => [
         permission.label,
         permission.opGroupId,
         ...permission.species,
       ].some((value) => String(value ?? '').toLowerCase().includes(search)))
-      : tagPermissions;
+      : typeMatches;
     return [...matches]
       .sort((left, right) => {
         const leftControlled = /controlled hunt/i.test(left.label) ? 1 : 0;
@@ -336,7 +340,7 @@ function SearchPage() {
         return leftControlled - rightControlled || alphaCompare(left.label, right.label);
       })
       .slice(0, 8);
-  }, [tagPermissions, tagPermissionQuery]);
+  }, [tagPermissions, tagPermissionQuery, tagPermissionType]);
   const activeFilterOptions = useMemo(() => ({
     ...filterOptions,
     sex: {
@@ -693,6 +697,7 @@ function SearchPage() {
     setJourneyMode(mode);
     setSelectedTagPermission('');
     setTagPermissionQuery('');
+    setTagPermissionType('all');
     setFilters(initialFilters);
     setSelectedMonths([]);
     setSubmittedQuery('');
@@ -823,6 +828,30 @@ function SearchPage() {
               <h2 id="tag-package-title">What can I do with this tag?</h2>
               <p>Choose a live tag permission to see every season and hunt area it authorizes.</p>
             </div>
+            <fieldset className="tag-type-filter">
+              <legend>Tag type</legend>
+              <div className="tag-type-options">
+                {[
+                  ['all', 'All'],
+                  ['General season', 'General'],
+                  ['Controlled hunt', 'Controlled'],
+                ].map(([value, label]) => <label key={value}>
+                  <input
+                    type="radio"
+                    name="tag-permission-type"
+                    value={value}
+                    checked={tagPermissionType === value}
+                    onChange={() => {
+                      setTagPermissionType(value);
+                      setSelectedTagPermission('');
+                      setTagPermissionQuery('');
+                      setHasViewedResults(false);
+                    }}
+                  />
+                  <span>{label}</span>
+                </label>)}
+              </div>
+            </fieldset>
             <label className="tag-permission-search">
               <span>Tag permission</span>
               <Search size={15} aria-hidden="true" />
@@ -858,7 +887,7 @@ function SearchPage() {
             {activeTagPermission && <div className="tag-package-preview">
               <strong>{activeTagPermission.label}</strong>
               <span>{activeTagPermission.opportunityCount} season options across {activeTagPermission.areaCount} hunt areas</span>
-              <small>Hunt Planner API 1.1{activeTagPermission.opGroupId ? ` · permission ${activeTagPermission.opGroupId}` : ''}</small>
+              <small>{activeTagPermission.tagTypes.join(' · ')} · Hunt Planner API 1.1{activeTagPermission.opGroupId ? ` · permission ${activeTagPermission.opGroupId}` : ''}</small>
             </div>}
           </section>}
 
