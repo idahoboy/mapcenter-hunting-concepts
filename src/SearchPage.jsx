@@ -34,6 +34,7 @@ import { createFallbackOpportunityPlan, interpretOpportunitySearch, resolveCatal
 import MatchExplanation from './MatchExplanation.jsx';
 import { buildUnitWhereClause, getCombinedExtent, getHuntMapUnits } from './huntMapSelection.js';
 import { createProximityBuffer, findIntersectingOpportunityIds } from './spatialOpportunityFilter.js';
+import { buildTagPermissions, matchesTagPermission } from './tagPermissions.js';
 import './search-page.css';
 import './location-summary.css';
 
@@ -286,6 +287,9 @@ function SearchPage() {
   const resultUnitDisplayLayer = useRef(null);
   const resultExtent = useRef(null);
   const [query, setQuery] = useState('');
+  const [journeyMode, setJourneyMode] = useState('opportunity');
+  const [selectedTagPermission, setSelectedTagPermission] = useState('');
+  const [tagPermissionQuery, setTagPermissionQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
   const [selectedHunt, setSelectedHunt] = useState(null);
@@ -309,6 +313,30 @@ function SearchPage() {
   const [mapReadyVersion, setMapReadyVersion] = useState(0);
   const { summary: locationSummary, attach: attachIdentify, close: closeIdentify, zoomTo: zoomToIdentify } = useMapIdentify(layerInstances, allLayers);
   const { isSaved, toggle: toggleSavedHunt } = useHuntPlan();
+  const tagPermissions = useMemo(() => buildTagPermissions(filterOpportunities(catalog, {
+    filters: initialFilters,
+  })), [catalog]);
+  const activeTagPermission = useMemo(
+    () => tagPermissions.find((permission) => permission.key === selectedTagPermission) ?? null,
+    [tagPermissions, selectedTagPermission],
+  );
+  const visibleTagPermissions = useMemo(() => {
+    const search = tagPermissionQuery.trim().toLowerCase();
+    const matches = search
+      ? tagPermissions.filter((permission) => [
+        permission.label,
+        permission.opGroupId,
+        ...permission.species,
+      ].some((value) => String(value ?? '').toLowerCase().includes(search)))
+      : tagPermissions;
+    return [...matches]
+      .sort((left, right) => {
+        const leftControlled = /controlled hunt/i.test(left.label) ? 1 : 0;
+        const rightControlled = /controlled hunt/i.test(right.label) ? 1 : 0;
+        return leftControlled - rightControlled || alphaCompare(left.label, right.label);
+      })
+      .slice(0, 8);
+  }, [tagPermissions, tagPermissionQuery]);
   const activeFilterOptions = useMemo(() => ({
     ...filterOptions,
     sex: {
@@ -386,7 +414,12 @@ function SearchPage() {
   const overlapQuery = /\b(overlap|overlapping|same location|same area)\b/i.test(query);
   const attributeFilteredOpportunities = useMemo(
     () => {
-      const rows = filterOpportunities(catalog, { search: submittedQuery, filters, regionLookup, dateRange: aiPlan?.dateRange });
+      const filteredCatalog = journeyMode === 'tag'
+        ? selectedTagPermission
+          ? catalog.filter((hunt) => matchesTagPermission(hunt, selectedTagPermission))
+          : []
+        : catalog;
+      const rows = filterOpportunities(filteredCatalog, { search: submittedQuery, filters, regionLookup, dateRange: aiPlan?.dateRange });
       const monthFiltered = selectedMonths.length
         ? rows.filter((hunt) => selectedMonths.some((month) => matchesDateRange(hunt, {
           start: `2026-${String(month).padStart(2, '0')}-01`,
@@ -395,7 +428,7 @@ function SearchPage() {
         : rows;
       return overlapQuery ? filterOverlappingOpportunities(monthFiltered) : monthFiltered;
     },
-    [catalog, submittedQuery, filters, regionLookup, aiPlan, overlapQuery, selectedMonths],
+    [catalog, submittedQuery, filters, regionLookup, aiPlan, overlapQuery, selectedMonths, journeyMode, selectedTagPermission],
   );
   useEffect(() => {
     let active = true;
@@ -460,12 +493,17 @@ function SearchPage() {
     return orderedGroups.slice(0, pageSize);
   }, [sortedOpportunities, groupBy, sortBy]);
   const opportunities = useMemo(() => groupedOpportunities.flatMap((group) => group.items), [groupedOpportunities]);
-  const receipt = useMemo(() => [
+  const receipt = useMemo(() => journeyMode === 'tag' && activeTagPermission ? [
+    { label: 'Tag', value: activeTagPermission.label },
+    { label: 'Species', value: activeTagPermission.species.join(', ') },
+    { label: 'Areas', value: String(activeTagPermission.areaCount) },
+    { label: 'Seasons', value: String(activeTagPermission.opportunityCount) },
+  ] : [
     { label: 'What', value: filters.species.length ? filters.species.join(', ') : 'Any big game' },
     { label: 'Where', value: aiPlan?.location?.label || (filters.region.length ? filters.region.join(', ') : 'Anywhere in Idaho') },
     { label: 'When', value: aiPlan?.dateRange ? `${aiPlan.dateRange.start}–${aiPlan.dateRange.end}` : selectedMonths.length ? monthOptions.filter((item) => selectedMonths.includes(item.month)).map((item) => item.label).join(', ') : 'Any open date' },
     { label: 'Tag type', value: filters.huntType.length ? filters.huntType.join(', ') : 'General or controlled' },
-  ], [filters.species, filters.region, filters.huntType, aiPlan, selectedMonths]);
+  ], [journeyMode, activeTagPermission, filters.species, filters.region, filters.huntType, aiPlan, selectedMonths]);
 
   const rankedLayers = useMemo(
     () => deriveLayerStack(allLayers, query, filters),
@@ -651,6 +689,20 @@ function SearchPage() {
     setManualOverrides({});
   };
 
+  const selectJourneyMode = (mode) => {
+    setJourneyMode(mode);
+    setSelectedTagPermission('');
+    setTagPermissionQuery('');
+    setFilters(initialFilters);
+    setSelectedMonths([]);
+    setSubmittedQuery('');
+    setAiPlan(null);
+    setHasViewedResults(false);
+    setGroupBy('location');
+    setManualOverrides({});
+    setStatus(mode === 'tag' ? 'Choose a tag permission to see what it authorizes.' : 'Describe or filter the opportunity you want.');
+  };
+
   const revealFilteredResults = () => {
     setHasViewedResults(true);
     setStatus(`${resultTotal.toLocaleString()} filtered Hunt Planner opportunities shown.`);
@@ -728,6 +780,11 @@ function SearchPage() {
 
       <main className="search-workspace">
         <section className="search-command" aria-label="Opportunity search criteria">
+          <div className="journey-mode-switch" role="group" aria-label="Choose how to start">
+            <button type="button" aria-pressed={journeyMode === 'opportunity'} className={journeyMode === 'opportunity' ? 'active' : ''} onClick={() => selectJourneyMode('opportunity')}>Find a hunt</button>
+            <button type="button" aria-pressed={journeyMode === 'tag'} className={journeyMode === 'tag' ? 'active' : ''} onClick={() => selectJourneyMode('tag')}>Start with a tag</button>
+          </div>
+          {journeyMode === 'opportunity' ? <>
           <div className="ai-search-box">
             <span className="ai-search-icon" aria-hidden="true"><Sparkles size={21} /></span>
             <label>
@@ -759,15 +816,61 @@ function SearchPage() {
             </div>
           </div>
 
-          <div className="search-receipt" aria-label="Current search" aria-live="polite">
+          </> : <section className="tag-package-picker" aria-labelledby="tag-package-title">
+            <span><Bookmark size={18} aria-hidden="true" /></span>
+            <div className="tag-package-intro">
+              <small>Permission-first search</small>
+              <h2 id="tag-package-title">What can I do with this tag?</h2>
+              <p>Choose a live tag permission to see every season and hunt area it authorizes.</p>
+            </div>
+            <label className="tag-permission-search">
+              <span>Tag permission</span>
+              <Search size={15} aria-hidden="true" />
+              <input
+                type="search"
+                value={tagPermissionQuery}
+                placeholder={apiState === 'loading' ? 'Loading live tags…' : 'Type a tag name or hunt number'}
+                disabled={apiState !== 'ready'}
+                aria-controls="tag-permission-matches"
+                onChange={(event) => {
+                  setTagPermissionQuery(event.target.value);
+                  setSelectedTagPermission('');
+                  setHasViewedResults(false);
+                }}
+              />
+            </label>
+            {!activeTagPermission && apiState === 'ready' && <div className="tag-permission-matches" id="tag-permission-matches">
+              <small>{tagPermissionQuery ? `${visibleTagPermissions.length} closest matches shown` : 'Common tag packages'}</small>
+              <ul>
+                {visibleTagPermissions.map((permission) => <li key={permission.key}>
+                  <button type="button" onClick={() => {
+                    setSelectedTagPermission(permission.key);
+                    setTagPermissionQuery(permission.label);
+                    setHasViewedResults(false);
+                  }}>
+                    <span><strong>{permission.label}</strong><small>{permission.species.join(' · ')}</small></span>
+                    <span>{permission.areaCount} areas<ChevronRight size={14} aria-hidden="true" /></span>
+                  </button>
+                </li>)}
+              </ul>
+              {!visibleTagPermissions.length && <p>No tag permissions match that name or number.</p>}
+            </div>}
+            {activeTagPermission && <div className="tag-package-preview">
+              <strong>{activeTagPermission.label}</strong>
+              <span>{activeTagPermission.opportunityCount} season options across {activeTagPermission.areaCount} hunt areas</span>
+              <small>Hunt Planner API 1.1{activeTagPermission.opGroupId ? ` · permission ${activeTagPermission.opGroupId}` : ''}</small>
+            </div>}
+          </section>}
+
+          {(journeyMode === 'opportunity' || activeTagPermission) && <div className="search-receipt" aria-label="Current search" aria-live="polite">
             <span className="search-receipt-label">Your search</span>
             {receipt.map((item) => <span key={item.label}><small>{item.label}</small><strong>{item.value}</strong></span>)}
-          </div>
+          </div>}
 
           <div className="search-gate-actions">
-            <p><strong>{apiState === 'loading' ? 'Checking live opportunities…' : `${resultAreaTotal.toLocaleString()} hunt areas ready`}</strong><span>{resultTotal.toLocaleString()} live season opportunities match this search.</span></p>
-            <button type="button" onClick={revealFilteredResults} disabled={apiState === 'loading'} aria-controls="search-results">
-              {hasViewedResults ? `Update ${resultAreaTotal.toLocaleString()} areas` : `Explore ${resultAreaTotal.toLocaleString()} areas`}<ChevronRight size={17} />
+            <p><strong>{apiState === 'loading' ? 'Checking live opportunities…' : journeyMode === 'tag' && !activeTagPermission ? 'Choose a tag permission' : `${resultAreaTotal.toLocaleString()} hunt areas ready`}</strong><span>{journeyMode === 'tag' && !activeTagPermission ? 'The API tag catalog is ready.' : `${resultTotal.toLocaleString()} live season opportunities match this search.`}</span></p>
+            <button type="button" onClick={revealFilteredResults} disabled={apiState === 'loading' || (journeyMode === 'tag' && !activeTagPermission)} aria-controls="search-results">
+              {journeyMode === 'tag' ? `${hasViewedResults ? 'Update' : 'Explore'} tag package` : `${hasViewedResults ? 'Update' : 'Explore'} ${resultAreaTotal.toLocaleString()} areas`}<ChevronRight size={17} />
             </button>
           </div>
 
@@ -775,14 +878,24 @@ function SearchPage() {
 
         <section className="search-results-pane" id="search-results" aria-labelledby="results-title">
           {!hasViewedResults ? <div className="pre-results-panel">
-            <span>Opportunity Explorer</span>
-            <h1 id="results-title">Start with a place—not a record.</h1>
-            <p>Choose what, where, and when—or describe what you want. Tag type and other refinements remain easy to reach without crowding the starting point.</p>
+            <span>{journeyMode === 'tag' ? 'Permission Explorer' : 'Opportunity Explorer'}</span>
+            <h1 id="results-title">{journeyMode === 'tag' ? activeTagPermission ? 'See where your tag works.' : 'Start with permission.' : 'Start with a place—not a record.'}</h1>
+            <p>{journeyMode === 'tag' ? activeTagPermission ? `${activeTagPermission.label} connects to ${activeTagPermission.opportunityCount} live season options. Open the package to compare its hunt areas.` : 'Choose a tag permission from the live catalog. We will translate it into authorized species, seasons, and hunt areas; license requirements can follow the area choice.' : 'Choose what, where, and when—or describe what you want. Tag type and other refinements remain easy to reach without crowding the starting point.'}</p>
           </div> : <>
           <div className="results-toolbar">
-            <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">2026 hunt opportunities</h1><p>{apiState === 'loading' ? 'Loading Hunt Planner API 1.1…' : apiState === 'error' ? 'Live data is temporarily unavailable' : groupBy === 'location' ? `${resultAreaTotal.toLocaleString()} matching hunt areas · showing first ${groupedOpportunities.length}` : groupBy === 'tag' ? `${resultTotal.toLocaleString()} authoritative opportunities · ${groupedOpportunities.length} tag permissions shown` : `${resultTotal.toLocaleString()} authoritative records · showing first ${opportunities.length}`}</p></div>
+            <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">{journeyMode === 'tag' ? activeTagPermission?.label : '2026 hunt opportunities'}</h1><p>{apiState === 'loading' ? 'Loading Hunt Planner API 1.1…' : apiState === 'error' ? 'Live data is temporarily unavailable' : groupBy === 'location' ? `${resultAreaTotal.toLocaleString()} matching hunt areas · showing first ${groupedOpportunities.length}` : groupBy === 'tag' ? `${resultTotal.toLocaleString()} authoritative opportunities · ${groupedOpportunities.length} tag permissions shown` : `${resultTotal.toLocaleString()} authoritative records · showing first ${opportunities.length}`}</p></div>
             <span className="live-data-badge"><Database size={14} />API 1.1 live</span>
           </div>
+
+          {journeyMode === 'tag' && activeTagPermission && <section className="permission-package-summary" aria-label="Selected permission package">
+            <small>Selected permission package</small>
+            <p><strong>{activeTagPermission.species.join(' · ')}</strong><span>{activeTagPermission.opportunityCount} season options · {activeTagPermission.areaCount} hunt areas</span></p>
+            <ol aria-label="Planning steps">
+              <li className="current"><b>1</b><span><strong>Where it works</strong><small>Choose a hunt area below</small></span></li>
+              <li><b>2</b><span><strong>Access</strong><small>Review after choosing an area</small></span></li>
+              <li><b>3</b><span><strong>Rules</strong><small>Verify before purchase</small></span></li>
+            </ol>
+          </section>}
 
           <details className="organize-disclosure">
             <summary>Organize results <ChevronDown size={15} aria-hidden="true" /></summary>
