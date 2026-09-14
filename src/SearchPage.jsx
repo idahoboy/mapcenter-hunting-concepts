@@ -13,6 +13,7 @@ import {
   Layers3,
   MapPin,
   PawPrint,
+  Scan,
   Search,
   Sparkles,
   Target,
@@ -281,6 +282,9 @@ function SearchPage() {
   const searchLocationGraphic = useRef(null);
   const proximityGraphic = useRef(null);
   const resultExtentRequest = useRef(0);
+  const resultAreaDisplayLayer = useRef(null);
+  const resultUnitDisplayLayer = useRef(null);
+  const resultExtent = useRef(null);
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
@@ -294,7 +298,7 @@ function SearchPage() {
   const [regionState, setRegionState] = useState('loading');
   const [apiState, setApiState] = useState('loading');
   const [stackOpen, setStackOpen] = useState(
-    () => !window.matchMedia('(max-width: 760px)').matches,
+    () => !window.matchMedia('(max-width: 1200px)').matches,
   );
   const [manualOverrides, setManualOverrides] = useState({});
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -321,6 +325,7 @@ function SearchPage() {
     if (view && selectionGraphics.current.length) view.graphics.removeMany(selectionGraphics.current);
     if (view && searchLocationGraphic.current) view.graphics.remove(searchLocationGraphic.current);
     if (view && proximityGraphic.current) view.graphics.remove(proximityGraphic.current);
+    resultExtent.current = null;
   }, []);
 
   useEffect(() => {
@@ -487,17 +492,27 @@ function SearchPage() {
     const requestId = ++resultExtentRequest.current;
     const timer = window.setTimeout(async () => {
       const view = mapRef.current?.view;
-      if (!view || !filteredOpportunities.length) return;
+      if (!view) return;
       const areaIds = [...new Set(filteredOpportunities.map((hunt) => hunt.areaId).filter(Boolean))];
       const units = [...new Set(filteredOpportunities.filter((hunt) => !hunt.areaId).map((hunt) => hunt.unit).filter(Boolean))];
+      if (resultAreaDisplayLayer.current) {
+        resultAreaDisplayLayer.current.definitionExpression = areaIds.length ? `ID IN (${areaIds.join(',')})` : '1 = 0';
+      }
+      if (resultUnitDisplayLayer.current) {
+        resultUnitDisplayLayer.current.definitionExpression = units.length ? buildUnitWhereClause(units) : '1 = 0';
+      }
+      if (!filteredOpportunities.length) {
+        resultExtent.current = null;
+        return;
+      }
       const extentRequests = [];
       if (areaIds.length) {
         const sample = filteredOpportunities.find((hunt) => hunt.areaId && hunt.map?.kind === 'hunt-area');
-        const areaLayer = huntAreaLayer.current ??= new FeatureLayer({ url: sample?.map?.url || config.dataProviders.huntPlanner.huntAreaLayerUrl, outFields: ['ID'], popupEnabled: false });
+        const areaLayer = resultAreaDisplayLayer.current || (huntAreaLayer.current ??= new FeatureLayer({ url: sample?.map?.url || config.dataProviders.huntPlanner.huntAreaLayerUrl, outFields: ['ID'], popupEnabled: false }));
         extentRequests.push(areaLayer.queryExtent({ where: `ID IN (${areaIds.join(',')})`, outSpatialReference: view.spatialReference }));
       }
       if (units.length) {
-        const unitLayer = layerInstances.current.get('game-units');
+        const unitLayer = resultUnitDisplayLayer.current || layerInstances.current.get('game-units');
         if (unitLayer) extentRequests.push(unitLayer.queryExtent({ where: buildUnitWhereClause(units), outSpatialReference: view.spatialReference }));
       }
       try {
@@ -506,6 +521,7 @@ function SearchPage() {
         const extents = responses.map((response) => response.extent).filter(Boolean);
         if (!extents.length) return;
         const combined = extents.slice(1).reduce((extent, next) => extent.union(next), extents[0].clone());
+        resultExtent.current = combined;
         highlightHandle.current?.remove();
         if (selectionGraphics.current.length) view.graphics.removeMany(selectionGraphics.current);
         selectionGraphics.current = [];
@@ -527,6 +543,35 @@ function SearchPage() {
       layerInstances.current.set(definition.id, layer);
       mapElement.map.add(layer);
     });
+    const matchingRenderer = () => ({
+      type: 'simple',
+      symbol: {
+        type: 'simple-fill',
+        color: [48, 111, 76, 0.18],
+        outline: { color: [34, 79, 56, 0.92], width: 1.5 },
+      },
+    });
+    resultAreaDisplayLayer.current = new FeatureLayer({
+      url: config.dataProviders.huntPlanner.huntAreaLayerUrl,
+      title: 'Matching hunt areas',
+      definitionExpression: '1 = 0',
+      outFields: ['ID'],
+      popupEnabled: false,
+      listMode: 'hide',
+      renderer: matchingRenderer(),
+    });
+    const gameUnitDefinition = allLayers.find((definition) => definition.id === 'game-units');
+    if (gameUnitDefinition?.url) {
+      resultUnitDisplayLayer.current = new FeatureLayer({
+        url: gameUnitDefinition.url,
+        title: 'Matching game management units',
+        definitionExpression: '1 = 0',
+        popupEnabled: false,
+        listMode: 'hide',
+        renderer: matchingRenderer(),
+      });
+    }
+    mapElement.map.addMany([resultAreaDisplayLayer.current, resultUnitDisplayLayer.current].filter(Boolean));
     mapElement.view.aria = {
       label: 'Idaho hunt opportunity search map',
       description: 'A synchronized map of units and GIS services derived from the current search criteria.',
@@ -534,6 +579,15 @@ function SearchPage() {
     attachIdentify(mapElement.view);
     setMapReadyVersion((value) => value + 1);
     setStatus(`${composedLayers.size} services selected from the current search.`);
+  };
+
+  const fitMapToResults = () => {
+    const view = mapRef.current?.view;
+    if (!view || !resultExtent.current) return;
+    view.goTo(resultExtent.current.expand(1.12), {
+      duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 500,
+    }).catch(() => {});
+    setStatus(`Map framed to ${resultAreaTotal.toLocaleString()} matching hunt areas.`);
   };
 
   const optimizeMap = async () => {
@@ -758,13 +812,11 @@ function SearchPage() {
             </div>
           </details>
 
-          <aside className="assistant-note">
+          {aiPlan && <aside className="assistant-note">
             <span><Sparkles size={17} /></span>
-            <p>{aiPlan
-              ? <><strong>{aiPlan.summary}</strong> Results come from Hunt Planner API 1.1; OpenAI selected only validated filters and configured GIS services.{aiPlan.dateRange ? ` Date overlap applied for ${aiPlan.dateRange.start} through ${aiPlan.dateRange.end}.` : ''}{aiPlan.location ? ` Map location verified as ${aiPlan.location.label}.` : ''}</>
-              : <><strong>Live catalog, AI-ready.</strong> Describe a hunt in plain language or use the filters. Hunt facts come directly from Hunt Planner API 1.1.</>}</p>
-            <small>{aiPlan ? 'OpenAI + IDFG' : 'Source: IDFG'}</small>
-          </aside>
+            <p><strong>{aiPlan.summary}</strong> Results come from Hunt Planner API 1.1; OpenAI selected only validated filters and configured GIS services.{aiPlan.dateRange ? ` Date overlap applied for ${aiPlan.dateRange.start} through ${aiPlan.dateRange.end}.` : ''}{aiPlan.location ? ` Map location verified as ${aiPlan.location.label}.` : ''}</p>
+            <small>OpenAI + IDFG</small>
+          </aside>}
 
           {overlapQuery && <div className="overlap-note" role="status">
             <strong>Cross-species overlap mode</strong>
@@ -823,6 +875,9 @@ function SearchPage() {
             <arcgis-scale-bar slot="bottom-left" unit="dual" />
           </arcgis-map>
           <LocationSummaryPopup summary={locationSummary} onClose={closeIdentify} onZoom={zoomToIdentify} />
+          <button className="map-fit-results" type="button" onClick={fitMapToResults} disabled={!resultExtent.current}>
+            <Scan size={15} aria-hidden="true" />Fit matching areas
+          </button>
           <div className="map-result-count"><MapPin size={16} /><strong>{resultTotal.toLocaleString()} opportunities</strong><span>from API 1.1</span></div>
           <aside className={stackOpen ? 'smart-stack is-open' : 'smart-stack'} aria-label="AI-selected map services">
             <button className="smart-stack-heading" onClick={() => setStackOpen(!stackOpen)} aria-expanded={stackOpen}>
