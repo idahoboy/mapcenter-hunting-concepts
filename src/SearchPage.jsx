@@ -322,6 +322,9 @@ function SearchPage() {
     () => getTagPermissionSpeciesFamilies(tagPermissions),
     [tagPermissions],
   );
+  const unavailableTagPermissionSpecies = useMemo(() => config.speciesCatalog.filter(
+    (species) => !tagPermissionSpeciesOptions.includes(species.label),
+  ), [tagPermissionSpeciesOptions]);
   const activeTagPermission = useMemo(
     () => tagPermissions.find((permission) => permission.key === selectedTagPermission) ?? null,
     [tagPermissions, selectedTagPermission],
@@ -868,7 +871,12 @@ function SearchPage() {
                 setHasViewedResults(false);
               }}>
                 <option value="all">All available species</option>
-                {tagPermissionSpeciesOptions.map((species) => <option value={species} key={species}>{species}</option>)}
+                <optgroup label="Available from Hunt Planner API 1.1">
+                  {tagPermissionSpeciesOptions.map((species) => <option value={species} key={species}>{species}</option>)}
+                </optgroup>
+                {!!unavailableTagPermissionSpecies.length && <optgroup label="Not available in this flow">
+                  {unavailableTagPermissionSpecies.map((species) => <option value={species.label} key={species.id} disabled>{species.label} — {species.unavailableLabel || 'no current API records'}</option>)}
+                </optgroup>}
               </select>
             </label>
             <label className="tag-permission-search">

@@ -3,6 +3,12 @@ import config, { allLayers } from './config.js';
 import { deriveLayerStack } from './layerIntelligence.js';
 
 describe('hunt planner YAML configuration', () => {
+  it('keeps the complete big-game species taxonomy visible in configuration', () => {
+    expect(config.speciesCatalog.map((species) => species.label)).toEqual(expect.arrayContaining([
+      'Moose', 'Bighorn Sheep', 'Mountain Goat', 'Mountain Lion',
+    ]));
+  });
+
   it('uses unique ids for activities, groups, and layers', () => {
     const activityIds = config.activities.map((item) => item.id);
     const groupIds = config.layerGroups.map((item) => item.id);

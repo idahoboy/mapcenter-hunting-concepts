@@ -6,6 +6,16 @@ app:
   zoom: 6
   disclaimer: Boundaries are for planning only. Verify current seasons, rules, closures, and legal descriptions before hunting.
 
+speciesCatalog:
+  - { id: deer, label: Deer, status: active }
+  - { id: elk, label: Elk, status: active }
+  - { id: pronghorn, label: Pronghorn, status: active }
+  - { id: black-bear, label: Black Bear, status: active }
+  - { id: moose, label: Moose, status: active, unavailableLabel: no 2026 API records }
+  - { id: bighorn-sheep, label: Bighorn Sheep, status: active, unavailableLabel: no 2026 API records }
+  - { id: mountain-goat, label: Mountain Goat, status: active, unavailableLabel: no 2026 API records }
+  - { id: mountain-lion, label: Mountain Lion, status: planned, unavailableLabel: predator tools are planned }
+
 spatialSearch:
   hourToMiles: 50
   proximityRelation: intersects
