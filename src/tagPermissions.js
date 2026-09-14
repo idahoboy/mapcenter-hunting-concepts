@@ -38,3 +38,25 @@ export const buildTagPermissions = (hunts) => {
 };
 
 export const matchesTagPermission = (hunt, permissionKey) => getTagPermissionKey(hunt) === permissionKey;
+
+const normalizeSpeciesFamily = (species) => {
+  const value = String(species ?? '');
+  if (/deer/i.test(value)) return 'Deer';
+  if (/pronghorn/i.test(value)) return 'Pronghorn';
+  return value;
+};
+
+export const getTagPermissionSpeciesFamilies = (permissions) => [...new Set(
+  permissions.flatMap((permission) => permission.species.map(normalizeSpeciesFamily)).filter(Boolean),
+)].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+export const matchesTagPermissionSpecies = (permission, speciesFamily) => {
+  if (!speciesFamily || speciesFamily === 'all') return true;
+  const family = speciesFamily.toLowerCase();
+  return permission.species.some((species) => {
+    const value = String(species).toLowerCase();
+    if (family === 'deer') return value.includes('deer');
+    if (family === 'pronghorn') return value.includes('pronghorn');
+    return value === family;
+  });
+};

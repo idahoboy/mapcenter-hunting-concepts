@@ -193,6 +193,8 @@
 .tag-type-filter span { display: grid; place-items: center; min-height: 31px; padding: .2rem; border-radius: .42rem; color: #5f6d65; font-size: .5rem; font-weight: 820; text-align: center; }
 .tag-type-filter input:checked + span { color: white; background: var(--forest-800); box-shadow: 0 1px 5px rgba(25,55,43,.15); }
 .tag-type-filter input:focus-visible + span { outline: 3px solid rgba(196, 91, 45, .35); outline-offset: 1px; }
+.tag-species-filter select { width: 100%; min-height: 36px; padding: 0 .5rem; border: 1px solid #bdcbc2; border-radius: .5rem; color: #253f33; background: white; font-size: .54rem; font-weight: 750; }
+.tag-species-filter select:focus-visible { outline: 3px solid rgba(196, 91, 45, .3); outline-offset: 1px; }
 .tag-permission-search { position: relative; }
 .tag-permission-search > svg { position: absolute; left: .55rem; bottom: 11px; color: #6c7971; pointer-events: none; }
 .tag-permission-search input { width: 100%; min-height: 39px; padding: 0 .55rem 0 1.8rem; border: 1px solid #bdcbc2; border-radius: .5rem; color: #253f33; background: white; font-size: .58rem; font-weight: 700; }

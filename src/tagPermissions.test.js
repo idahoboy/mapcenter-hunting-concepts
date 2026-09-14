@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTagPermissions, matchesTagPermission } from './tagPermissions.js';
+import { buildTagPermissions, getTagPermissionSpeciesFamilies, matchesTagPermission, matchesTagPermissionSpecies } from './tagPermissions.js';
 
 const hunts = [
   { id: '1', tag: 'Regular Deer Tag', opGroupId: 20, species: 'Mule Deer', kind: 'General season', areaId: 101 },
@@ -22,5 +22,14 @@ describe('tag permissions', () => {
   it('matches an opportunity to its selected permission package', () => {
     expect(matchesTagPermission(hunts[2], 'opgroup:30')).toBe(true);
     expect(matchesTagPermission(hunts[2], 'opgroup:20')).toBe(false);
+  });
+
+  it('matches hunter-friendly species families to specific API species', () => {
+    const permissions = buildTagPermissions(hunts);
+    const permission = permissions.find((item) => item.key === 'opgroup:20');
+    expect(matchesTagPermissionSpecies(permission, 'Deer')).toBe(true);
+    expect(matchesTagPermissionSpecies(permission, 'Elk')).toBe(false);
+    expect(matchesTagPermissionSpecies(permission, 'all')).toBe(true);
+    expect(getTagPermissionSpeciesFamilies(permissions)).toEqual(['Deer', 'Elk']);
   });
 });

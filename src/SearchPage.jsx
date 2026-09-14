@@ -34,7 +34,7 @@ import { createFallbackOpportunityPlan, interpretOpportunitySearch, resolveCatal
 import MatchExplanation from './MatchExplanation.jsx';
 import { buildUnitWhereClause, getCombinedExtent, getHuntMapUnits } from './huntMapSelection.js';
 import { createProximityBuffer, findIntersectingOpportunityIds } from './spatialOpportunityFilter.js';
-import { buildTagPermissions, matchesTagPermission } from './tagPermissions.js';
+import { buildTagPermissions, getTagPermissionSpeciesFamilies, matchesTagPermission, matchesTagPermissionSpecies } from './tagPermissions.js';
 import './search-page.css';
 import './location-summary.css';
 
@@ -291,6 +291,7 @@ function SearchPage() {
   const [selectedTagPermission, setSelectedTagPermission] = useState('');
   const [tagPermissionQuery, setTagPermissionQuery] = useState('');
   const [tagPermissionType, setTagPermissionType] = useState('all');
+  const [tagPermissionSpecies, setTagPermissionSpecies] = useState('all');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [filters, setFilters] = useState(initialFilters);
   const [selectedHunt, setSelectedHunt] = useState(null);
@@ -317,6 +318,10 @@ function SearchPage() {
   const tagPermissions = useMemo(() => buildTagPermissions(filterOpportunities(catalog, {
     filters: initialFilters,
   })), [catalog]);
+  const tagPermissionSpeciesOptions = useMemo(
+    () => getTagPermissionSpeciesFamilies(tagPermissions),
+    [tagPermissions],
+  );
   const activeTagPermission = useMemo(
     () => tagPermissions.find((permission) => permission.key === selectedTagPermission) ?? null,
     [tagPermissions, selectedTagPermission],
@@ -326,13 +331,14 @@ function SearchPage() {
     const typeMatches = tagPermissionType === 'all'
       ? tagPermissions
       : tagPermissions.filter((permission) => permission.tagTypes.includes(tagPermissionType));
+    const speciesFiltered = typeMatches.filter((permission) => matchesTagPermissionSpecies(permission, tagPermissionSpecies));
     const matches = search
-      ? typeMatches.filter((permission) => [
+      ? speciesFiltered.filter((permission) => [
         permission.label,
         permission.opGroupId,
         ...permission.species,
       ].some((value) => String(value ?? '').toLowerCase().includes(search)))
-      : typeMatches;
+      : speciesFiltered;
     return [...matches]
       .sort((left, right) => {
         const leftControlled = /controlled hunt/i.test(left.label) ? 1 : 0;
@@ -340,7 +346,7 @@ function SearchPage() {
         return leftControlled - rightControlled || alphaCompare(left.label, right.label);
       })
       .slice(0, 8);
-  }, [tagPermissions, tagPermissionQuery, tagPermissionType]);
+  }, [tagPermissions, tagPermissionQuery, tagPermissionType, tagPermissionSpecies]);
   const activeFilterOptions = useMemo(() => ({
     ...filterOptions,
     sex: {
@@ -698,6 +704,7 @@ function SearchPage() {
     setSelectedTagPermission('');
     setTagPermissionQuery('');
     setTagPermissionType('all');
+    setTagPermissionSpecies('all');
     setFilters(initialFilters);
     setSelectedMonths([]);
     setSubmittedQuery('');
@@ -852,6 +859,18 @@ function SearchPage() {
                 </label>)}
               </div>
             </fieldset>
+            <label className="tag-species-filter">
+              <span>Species</span>
+              <select value={tagPermissionSpecies} onChange={(event) => {
+                setTagPermissionSpecies(event.target.value);
+                setSelectedTagPermission('');
+                setTagPermissionQuery('');
+                setHasViewedResults(false);
+              }}>
+                <option value="all">All available species</option>
+                {tagPermissionSpeciesOptions.map((species) => <option value={species} key={species}>{species}</option>)}
+              </select>
+            </label>
             <label className="tag-permission-search">
               <span>Tag permission</span>
               <Search size={15} aria-hidden="true" />
