@@ -12,6 +12,23 @@ The prototype expresses that direction through:
 4. a full-height map center with search, basemap, locate, scale, and layer controls; and
 5. explicit planning-only/legal-record messaging.
 
+## Permission-to-place journey
+
+The product must support two equally important starting questions:
+
+1. **What license and tag do I need for this opportunity?**
+2. **What opportunities does the license and tag I have—or intend to buy—authorize?**
+
+A license or tag is not merely another filter. It is a permission product that may authorize multiple season opportunities and hunt areas. The `opgroup` relationship is therefore a first-class domain concept: it connects the tag permission to its authorized opportunities and geographies.
+
+The intended journey is progressive:
+
+> choose an opportunity or permission package → understand what the tag authorizes → shortlist a place → review access → verify rules and eligibility → continue to the authoritative purchase path
+
+Access information becomes decisive after a hunter has narrowed the permission and opportunity. The first result view should summarize access rather than exposing a catalog of layers. Detailed access exploration should then be scoped to the selected hunt geometry and answer practical questions such as who manages the surface, where public-access agreements apply, how the area can be reached, and which restrictions matter. Relevant sources include surface-management data, Access Yes!, large-tract access, IDL lands, and additional services shared with the peer **Access Explorer** project. Parcel ownership is not currently available and must not be implied.
+
+This is analogous to selecting a vacation package: discovery establishes the promising package first; detailed conditions, logistics, and rules become prominent before commitment. The application should progressively disclose complexity instead of asking every hunter to understand licenses, tags, regulations, access programs, land-management categories, and GIS layers at the start.
+
 The second `/search` option tests a different entry model inspired by travel search: persistent criteria and filter chips, ranked opportunity cards, and a synchronized map. Its service stack is derived from the query and YAML service signals instead of loading an activity preset. The local scorer is deliberately labeled as a concept; a production implementation could replace it with a governed AI orchestration service while retaining the same explainable catalog contract and manual overrides.
 
 ## Patterns in public feedback
