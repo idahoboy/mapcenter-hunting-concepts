@@ -43,7 +43,13 @@ Connect the species and season controls to a real rules/search contract and make
 
 > “I want to hunt elk in fall” → see applicable opportunities → compare units → open one unit → review access, restrictions, statistics, and authoritative citations → share or print the plan.
 
-That vertical slice will clarify the data model, URL state, unit detail design, disclaimer placement, analytics events, and mobile behavior before adding drawing, GPX/KML, offline packages, or accounts.
+That vertical slice will clarify the data model, URL state, unit detail design, disclaimer placement, analytics events, and mobile behavior before adding offline packages or accounts.
+
+## Capability wishlist
+
+- **Deferred — GPX export:** Preserve as a future field-navigation capability, but do not expose a placeholder control in the current prototype. ArcGIS REST feature and map services do not provide a general native GPX response format, and hunt-area polygons would need an explicit product decision about conversion to tracks and waypoints.
+- **Active export direction — KML/KMZ and GeoJSON:** Evaluate each configured ArcGIS service's advertised export capabilities first, with application-side conversion only where native export cannot produce the selected geometry.
+- **Active map portability direction:** Shareable map state, linkable user drawings, and print-to-PDF remain candidates for the next map-tools slice.
 
 ## Sources reviewed
 
