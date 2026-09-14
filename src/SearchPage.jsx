@@ -286,6 +286,7 @@ function SearchPage() {
   const resultAreaDisplayLayer = useRef(null);
   const resultUnitDisplayLayer = useRef(null);
   const resultExtent = useRef(null);
+  const tagSearchInput = useRef(null);
   const [query, setQuery] = useState('');
   const [journeyMode, setJourneyMode] = useState('opportunity');
   const [selectedTagPermission, setSelectedTagPermission] = useState('');
@@ -718,6 +719,15 @@ function SearchPage() {
     setStatus(mode === 'tag' ? 'Choose a tag to see its associated legal hunting opportunities.' : 'Describe or filter the opportunity you want.');
   };
 
+  const returnToTagList = () => {
+    setSelectedTagPermission('');
+    setTagPermissionQuery('');
+    setSelectedHunt(null);
+    setHasViewedResults(false);
+    setStatus('Tag selection cleared. Choose another tag within the current type and species filters.');
+    window.requestAnimationFrame(() => tagSearchInput.current?.focus());
+  };
+
   const revealFilteredResults = () => {
     setHasViewedResults(true);
     setStatus(`${resultTotal.toLocaleString()} filtered Hunt Planner opportunities shown.`);
@@ -883,6 +893,7 @@ function SearchPage() {
               <span>Tag</span>
               <Search size={15} aria-hidden="true" />
               <input
+                ref={tagSearchInput}
                 type="search"
                 value={tagPermissionQuery}
                 placeholder={apiState === 'loading' ? 'Loading live tags…' : 'Type a tag name or hunt number'}
@@ -912,9 +923,12 @@ function SearchPage() {
               {!visibleTagPermissions.length && <p>No tags match that name or number.</p>}
             </div>}
             {activeTagPermission && <div className="tag-package-preview">
-              <strong>{activeTagPermission.label}</strong>
-              <span>{activeTagPermission.opportunityCount} season options across {activeTagPermission.areaCount} hunt areas</span>
-              <small>{activeTagPermission.tagTypes.join(' · ')} · Hunt Planner API 1.1{activeTagPermission.opGroupId ? ` · opgroup ${activeTagPermission.opGroupId}` : ''}</small>
+              <div>
+                <strong>{activeTagPermission.label}</strong>
+                <span>{activeTagPermission.opportunityCount} season options across {activeTagPermission.areaCount} hunt areas</span>
+                <small>{activeTagPermission.tagTypes.join(' · ')} · Hunt Planner API 1.1{activeTagPermission.opGroupId ? ` · opgroup ${activeTagPermission.opGroupId}` : ''}</small>
+              </div>
+              <button type="button" onClick={returnToTagList}><ArrowLeft size={13} aria-hidden="true" />Change tag</button>
             </div>}
           </section>}
 
