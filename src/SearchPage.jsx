@@ -179,7 +179,7 @@ function AreaResult({ group, selectedHunt, focusHuntArea, isSaved, toggleSavedHu
       <summary>
         <span className="area-result-number">{representative.unit || 'ID'}</span>
         <span className="area-result-title"><small>Hunt area</small><strong>{representative.areaLabel || `Unit ${representative.unit}`}</strong><span>{regions.join(' · ') || 'Idaho'}</span></span>
-        <span className="area-result-count"><strong>{tags.length}</strong> tag {tags.length === 1 ? 'permission' : 'permissions'}<small>{group.items.length} season {group.items.length === 1 ? 'option' : 'options'}</small></span>
+        <span className="area-result-count"><strong>{tags.length}</strong> {tags.length === 1 ? 'tag' : 'tags'}<small>{group.items.length} legal season {group.items.length === 1 ? 'option' : 'options'}</small></span>
         <ChevronDown size={18} aria-hidden="true" />
       </summary>
       <div className="area-result-context">
@@ -189,7 +189,7 @@ function AreaResult({ group, selectedHunt, focusHuntArea, isSaved, toggleSavedHu
       <div className="area-tag-list">
         {tags.map((tag) => (
           <section key={tag.key} className="area-tag-row">
-            <div><span>Tag permission</span><strong>{tag.label}</strong><small>{tag.opGroupId ? `opgroup ${tag.opGroupId} · ` : ''}{tag.items.length} season {tag.items.length === 1 ? 'option' : 'options'}</small></div>
+            <div><span>Tag</span><strong>{tag.label}</strong><small>{tag.opGroupId ? `opgroup ${tag.opGroupId} · ` : ''}{tag.items.length} legal season {tag.items.length === 1 ? 'option' : 'options'}</small></div>
             <div className="area-season-options">
               {tag.items.sort((a, b) => dateValue(a) - dateValue(b)).map((item) => (
                 <article className="area-season-option" key={item.id}>
@@ -222,7 +222,7 @@ function OpportunityGroupHeading({ group, mode }) {
   return (
     <header className="tag-group-header">
       <div>
-        <span className="tag-group-eyebrow"><Bookmark size={14} aria-hidden="true" />Tag permission</span>
+        <span className="tag-group-eyebrow"><Bookmark size={14} aria-hidden="true" />Tag and legal opportunities</span>
         <h2>{representative.tag || 'Unnamed tag'}</h2>
         <p>{group.items.length} season {group.items.length === 1 ? 'opportunity' : 'opportunities'} across {areaCount} hunt {areaCount === 1 ? 'area' : 'areas'}</p>
       </div>
@@ -244,7 +244,7 @@ function TagPermissionResult({ group, selectedHunt, focusHuntArea, isSaved, togg
       <summary>
         <span className="tag-result-mark"><Bookmark size={16} aria-hidden="true" /></span>
         <span className="tag-result-title">
-          <small>Tag permission</small>
+          <small>Tag and legal opportunities</small>
           <strong>{representative.tag || 'Unnamed tag'}</strong>
           <span>{species.join(' · ')}</span>
         </span>
@@ -715,7 +715,7 @@ function SearchPage() {
     setHasViewedResults(false);
     setGroupBy('location');
     setManualOverrides({});
-    setStatus(mode === 'tag' ? 'Choose a tag permission to see what it authorizes.' : 'Describe or filter the opportunity you want.');
+    setStatus(mode === 'tag' ? 'Choose a tag to see its associated legal hunting opportunities.' : 'Describe or filter the opportunity you want.');
   };
 
   const revealFilteredResults = () => {
@@ -834,9 +834,9 @@ function SearchPage() {
           </> : <section className="tag-package-picker" aria-labelledby="tag-package-title">
             <span><Bookmark size={18} aria-hidden="true" /></span>
             <div className="tag-package-intro">
-              <small>Permission-first search</small>
-              <h2 id="tag-package-title">What can I do with this tag?</h2>
-              <p>Choose a live tag permission to see every season and hunt area it authorizes.</p>
+              <small>Tag-first search</small>
+              <h2 id="tag-package-title">What can I pursue with this tag?</h2>
+              <p>Choose a live tag to see its legal opportunities by quarry, season, method, and hunt area.</p>
             </div>
             <fieldset className="tag-type-filter">
               <legend>Tag type</legend>
@@ -880,7 +880,7 @@ function SearchPage() {
               </select>
             </label>
             <label className="tag-permission-search">
-              <span>Tag permission</span>
+              <span>Tag</span>
               <Search size={15} aria-hidden="true" />
               <input
                 type="search"
@@ -909,12 +909,12 @@ function SearchPage() {
                   </button>
                 </li>)}
               </ul>
-              {!visibleTagPermissions.length && <p>No tag permissions match that name or number.</p>}
+              {!visibleTagPermissions.length && <p>No tags match that name or number.</p>}
             </div>}
             {activeTagPermission && <div className="tag-package-preview">
               <strong>{activeTagPermission.label}</strong>
               <span>{activeTagPermission.opportunityCount} season options across {activeTagPermission.areaCount} hunt areas</span>
-              <small>{activeTagPermission.tagTypes.join(' · ')} · Hunt Planner API 1.1{activeTagPermission.opGroupId ? ` · permission ${activeTagPermission.opGroupId}` : ''}</small>
+              <small>{activeTagPermission.tagTypes.join(' · ')} · Hunt Planner API 1.1{activeTagPermission.opGroupId ? ` · opgroup ${activeTagPermission.opGroupId}` : ''}</small>
             </div>}
           </section>}
 
@@ -924,7 +924,7 @@ function SearchPage() {
           </div>}
 
           <div className="search-gate-actions">
-            <p><strong>{apiState === 'loading' ? 'Checking live opportunities…' : journeyMode === 'tag' && !activeTagPermission ? 'Choose a tag permission' : `${resultAreaTotal.toLocaleString()} hunt areas ready`}</strong><span>{journeyMode === 'tag' && !activeTagPermission ? 'The API tag catalog is ready.' : `${resultTotal.toLocaleString()} live season opportunities match this search.`}</span></p>
+            <p><strong>{apiState === 'loading' ? 'Checking live opportunities…' : journeyMode === 'tag' && !activeTagPermission ? 'Choose a tag' : `${resultAreaTotal.toLocaleString()} hunt areas ready`}</strong><span>{journeyMode === 'tag' && !activeTagPermission ? 'The API tag catalog is ready.' : `${resultTotal.toLocaleString()} live season opportunities match this search.`}</span></p>
             <button type="button" onClick={revealFilteredResults} disabled={apiState === 'loading' || (journeyMode === 'tag' && !activeTagPermission)} aria-controls="search-results">
               {journeyMode === 'tag' ? `${hasViewedResults ? 'Update' : 'Explore'} tag package` : `${hasViewedResults ? 'Update' : 'Explore'} ${resultAreaTotal.toLocaleString()} areas`}<ChevronRight size={17} />
             </button>
@@ -934,22 +934,22 @@ function SearchPage() {
 
         <section className="search-results-pane" id="search-results" aria-labelledby="results-title">
           {!hasViewedResults ? <div className="pre-results-panel">
-            <span>{journeyMode === 'tag' ? 'Permission Explorer' : 'Opportunity Explorer'}</span>
-            <h1 id="results-title">{journeyMode === 'tag' ? activeTagPermission ? 'See where your tag works.' : 'Start with permission.' : 'Start with a place—not a record.'}</h1>
-            <p>{journeyMode === 'tag' ? activeTagPermission ? `${activeTagPermission.label} connects to ${activeTagPermission.opportunityCount} live season options. Open the package to compare its hunt areas.` : 'Choose a tag permission from the live catalog. We will translate it into authorized species, seasons, and hunt areas; license requirements can follow the area choice.' : 'Choose what, where, and when—or describe what you want. Tag type and other refinements remain easy to reach without crowding the starting point.'}</p>
+            <span>{journeyMode === 'tag' ? 'Legal Opportunity Explorer' : 'Opportunity Explorer'}</span>
+            <h1 id="results-title">{journeyMode === 'tag' ? activeTagPermission ? 'See the opportunities tied to your tag.' : 'Start with a tag.' : 'Start with a place—not a record.'}</h1>
+            <p>{journeyMode === 'tag' ? activeTagPermission ? `${activeTagPermission.label} connects to ${activeTagPermission.opportunityCount} live season options. Open it to compare the hunt areas and legal conditions.` : 'A tag connects to one or more legal opportunities to pursue wildlife. Explore the associated quarry, seasons, methods, and hunt areas; land-access permission is evaluated separately.' : 'Choose what, where, and when—or describe what you want. Tag type and other refinements remain easy to reach without crowding the starting point.'}</p>
           </div> : <>
           <div className="results-toolbar">
-            <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">{journeyMode === 'tag' ? activeTagPermission?.label : '2026 hunt opportunities'}</h1><p>{apiState === 'loading' ? 'Loading Hunt Planner API 1.1…' : apiState === 'error' ? 'Live data is temporarily unavailable' : groupBy === 'location' ? `${resultAreaTotal.toLocaleString()} matching hunt areas · showing first ${groupedOpportunities.length}` : groupBy === 'tag' ? `${resultTotal.toLocaleString()} authoritative opportunities · ${groupedOpportunities.length} tag permissions shown` : `${resultTotal.toLocaleString()} authoritative records · showing first ${opportunities.length}`}</p></div>
+            <div><a href="/"><ArrowLeft size={15} />Map center</a><h1 id="results-title">{journeyMode === 'tag' ? activeTagPermission?.label : '2026 hunt opportunities'}</h1><p>{apiState === 'loading' ? 'Loading Hunt Planner API 1.1…' : apiState === 'error' ? 'Live data is temporarily unavailable' : groupBy === 'location' ? `${resultAreaTotal.toLocaleString()} matching hunt areas · showing first ${groupedOpportunities.length}` : groupBy === 'tag' ? `${resultTotal.toLocaleString()} authoritative opportunities · ${groupedOpportunities.length} tags shown` : `${resultTotal.toLocaleString()} authoritative records · showing first ${opportunities.length}`}</p></div>
             <span className="live-data-badge"><Database size={14} />API 1.1 live</span>
           </div>
 
-          {journeyMode === 'tag' && activeTagPermission && <section className="permission-package-summary" aria-label="Selected permission package">
-            <small>Selected permission package</small>
+          {journeyMode === 'tag' && activeTagPermission && <section className="permission-package-summary" aria-label="Selected tag and legal opportunities">
+            <small>Selected tag</small>
             <p><strong>{activeTagPermission.species.join(' · ')}</strong><span>{activeTagPermission.opportunityCount} season options · {activeTagPermission.areaCount} hunt areas</span></p>
             <ol aria-label="Planning steps">
-              <li className="current"><b>1</b><span><strong>Where it works</strong><small>Choose a hunt area below</small></span></li>
-              <li><b>2</b><span><strong>Access</strong><small>Review after choosing an area</small></span></li>
-              <li><b>3</b><span><strong>Rules</strong><small>Verify before purchase</small></span></li>
+              <li className="current"><b>1</b><span><strong>Opportunity</strong><small>Quarry, season and hunt area</small></span></li>
+              <li><b>2</b><span><strong>Conditions</strong><small>Method, eligibility, rules and conservation duties</small></span></li>
+              <li><b>3</b><span><strong>Access</strong><small>Land entry and surface management</small></span></li>
             </ol>
           </section>}
 
@@ -960,7 +960,7 @@ function SearchPage() {
                 <span>Group results by</span>
                 <select value={groupBy} onChange={(event) => setGroupBy(event.target.value)}>
                   <option value="none">No grouping</option>
-                  <option value="tag">Tag permission</option>
+                  <option value="tag">Tag</option>
                   <option value="location">Hunt area</option>
                   <option value="sex">Sex / ornament</option>
                   <option value="species">Species</option>
